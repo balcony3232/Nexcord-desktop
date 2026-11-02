@@ -1,0 +1,57 @@
+name: Nexcord Desktop - Development Build
+
+on:
+  push:
+    branches: [nexcord-development]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nexcord-dev-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Nexcord desktop client mod
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout Nexcord
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm and Node
+        uses: pnpm/setup@v4
+        with:
+          version: 12.15.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm testTsc
+
+      - name: Build standalone Discord mod
+        run: pnpm buildStandalone
+
+      - name: Verify desktop bundle
+        run: |
+          test -s dist/desktop.asar
+          echo "Nexcord desktop.asar assembled successfully"
+
+      - name: Upload test build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nexcord-Desktop-dev-${{ github.sha }}
+          path: |
+            dist/desktop.asar
+          if-no-files-found: error
+          retention-days: 14
