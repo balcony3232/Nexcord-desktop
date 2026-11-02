@@ -104,7 +104,7 @@ export interface Settings {
 }
 
 const DefaultSettings: Settings = {
-    autoUpdate: true,
+    autoUpdate: false, // Opt-in during Nexcord development preview: avoid untested updates.
     autoUpdateNotification: true,
     useQuickCss: true,
     themeLinks: [],
