@@ -1,37 +1,21 @@
-# Blank lines and lines starting with "#" are ignored
-
-Explode
-Read if cute
-Have a nice day!
-Starting Lightcord...
-Loading 0BDFDB.plugin.js...
-Installing BetterDiscord...
-h
-shhhhh did you know that you're my favorite user? But don't tell the others!!
-Today's video is sponsored by Raid Shadow Legends, one of the biggest mobile role-playing games of 2019 and it's totally free!
-Never gonna give you up, Never gonna let you down
-( ͡° ͜ʖ ͡°)
-(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧
-You look so pretty today!
-Thinking of a funny quote...
-3.141592653589793
-meow
-Welcome, friend
-If you, or someone you love, has Ligma, please see the Ligma health line at https://bit.ly/ligma_hotline
-Trans Rights
-I’d just like to interject for a moment. What you’re refering to as Linux, is in fact, GNU/Linux, or as I’ve recently taken to calling it, GNU plus Linux.
-You're doing good today!
-Don't worry, it's nothing 9 cups of coffee couldn't solve!
-�(repeat like 30 times)
-a light amount of tomfoolery is okay
-do you love?
-horror
-so eepy
-So without further ado, let's just jump right into it!
-Dying is absolutely safe
-hey you! you're cute :))
-heya ~
-<:trolley:997086295010594867>
-Time is gone, space is insane. Here it comes, here again.
-sometimes it's okay to just guhhhhhhhhhhhhhh
-Welcome to nginx!
+# Nexcord loading facts (one per line)
+Somewhere, a loading spinner is considering retirement.
+The N stands for Nexcord. Incredible naming skills.
+Your plugins are having a meeting. Nobody brought snacks.
+The pixels have unionised again.
+You're currently experiencing a professionally engineered loading screen.
+Nobody knows why it takes this long. Not even the pixels.
+Please don't feed the progress bar.
+The loading screen requested a day off. Denied.
+Updating the hamster wheel...
+Someone left 37 tabs open and blamed the GPU.
+Local cosmetics only change what you see.
+Your Discord appearance stays original unless you choose otherwise.
+You can favourite plugins to find them faster.
+Sometimes the best plugin is the one you turned off.
+Is it loading? Yes. Is it thinking? Probably not.
+Somebody tried to speedrun a progress indicator.
+This loading tip was chosen by a very serious computer.
+Just because it's purple doesn't mean it's legendary.
+Discord's servers cannot see your Nexcord-only decorations.
+Even the startup screen has a personality now.

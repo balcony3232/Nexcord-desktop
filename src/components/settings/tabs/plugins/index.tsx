@@ -44,6 +44,7 @@ import { JSX } from "react";
 
 import Plugins, { ExcludedPlugins, PluginMeta } from "~plugins";
 
+import { NexcordPluginPresets } from "./NexcordPluginPresets";
 import { PluginCard } from "./PluginCard";
 import { openWarningModal } from "./PluginModal";
 import { StockPluginsCard, UserPluginsCard } from "./PluginStatCards";
@@ -382,6 +383,7 @@ export default function PluginSettings() {
     return (
         <SettingsTab>
             <ReloadRequiredCard required={changes.hasChanges} enabledPlugins={enabledPlugins} openWarningModal={openWarningModal} resetCheckAndDo={resetCheckAndDo} />
+            <NexcordPluginPresets />
 
             <div className={cl("stats-container")}>
                 <StockPluginsCard
