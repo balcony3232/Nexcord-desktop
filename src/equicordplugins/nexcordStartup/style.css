@@ -1,0 +1,7 @@
+/* Nexcord spinner-only logo, no changes to ordinary Discord UI. */
+.nexcord-loading-logo {
+    display: block;
+    object-fit: contain;
+    pointer-events: none;
+    user-select: none;
+}

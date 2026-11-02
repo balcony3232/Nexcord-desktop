@@ -12,11 +12,12 @@ Independent Equicord-based Discord desktop modification.
 ## Current v0.1 work
 - Nexcord Settings identity and original orbital N logo
 - Nexcord loading facts via existing LoadingQuotes plugin
+- Nexcord in-app loading logo via startup spinner patch (inspired by Xaenny, MIT; safe fallback if patch no longer matches)
 - Plugin favourites and filters remain provided by Equicord
 - Nexcord saved plugin presets
 
 ## Known limitations
-- Early Discord startup splash logo may be controlled by Discord before plugins load; the logo override must be tested separately.
+- NexcordStartup targets the **in-app** loading logo. The earlier Electron splash is separate. The logo replacement requires a live Discord launch test.
 - Installing into Discord and configuring release updates requires the dedicated Nexcord Installer, which is not yet complete.
 - Distributing untested development builds can break the Discord installation. Use PTB/Canary for testing.
 
