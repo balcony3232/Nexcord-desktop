@@ -56,8 +56,8 @@ jobs:
       - name: Self-test installer patch/restore in temporary directory
         shell: pwsh
         run: |
-          & installer/out/NexcordInstaller.exe --self-test
-          if ($LASTEXITCODE -ne 0) { throw "Nexcord installer self-test failed" }
+          $test = Start-Process -FilePath "installer/out/NexcordInstaller.exe" -ArgumentList "--self-test" -Wait -PassThru -NoNewWindow
+          if ($test.ExitCode -ne 0) { throw "Nexcord installer self-test failed (exit code $($test.ExitCode))" }
       - uses: actions/upload-artifact@v4
         with:
           name: nexcord-windows-installer
