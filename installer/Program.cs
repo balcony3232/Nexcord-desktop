@@ -62,35 +62,24 @@ internal static class InstallerOperations
         return client;
     }
 
-    public static IReadOnlyList<DiscordInstall> FindDiscord()
-    {
-        var found = new List<DiscordInstall>();
-        string baseDir = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        foreach (var (channel, folder) in new[] {
-            ("Stable", "Discord"), ("PTB", "DiscordPTB"), ("Canary", "DiscordCanary")
-        })
-        {
-            string root = Path.Combine(baseDir, folder);
-            if (!Directory.Exists(root)) continue;
-            var candidates = Directory.GetDirectories(root, "app-*")
-                .Select(path => new { path, version = ParseVersion(Path.GetFileName(path)) })
-                .OrderByDescending(x => x.version).ThenByDescending(x => x.path).ToArray();
-            foreach (var item in candidates)
-            {
-                string resources = Path.Combine(item.path, "resources");
-                if (File.Exists(Path.Combine(resources, "app.asar")))
-                {
-                    found.Add(new DiscordInstall(channel, root, resources));
-                    break;
-                }
-            }
-        }
-        return found;
-    }
+    public static IReadOnlyList<DiscordInstall> FindDiscord() => DiscordDiscovery.FindAll();
 
-    private static Version ParseVersion(string folder)
-        => Version.TryParse(folder.StartsWith("app-") ? folder[4..] : folder, out var v)
-            ? v : new Version(0, 0);
+    public static (bool CanInstall, bool CanUninstall, string Message) GetInstallStatus(DiscordInstall install)
+    {
+        string app = Path.Combine(install.Resources, "app.asar");
+        string backup = Path.Combine(install.Resources, "_app.asar");
+        bool owned = IsNexcordLoader(app);
+
+        if (owned && File.Exists(backup))
+            return (true, true, "Nexcord is installed. You can update or uninstall it.");
+        if (File.Exists(backup) || Directory.Exists(Path.Combine(install.Resources, "app")))
+            return (false, false, "Another client modification is already installed here. Uninstall it first.");
+        if (!File.Exists(app))
+            return (false, false, "Missing Discord app.asar. This installation can't be patched safely.");
+        if (new FileInfo(app).Length < 128 * 1024)
+            return (false, false, "This app.asar looks modified. Restore vanilla Discord before installing Nexcord.");
+        return (true, false, "Discord detected. Ready to install Nexcord.");
+    }
 
     private static bool IsNexcordLoader(string path)
     {
@@ -158,13 +147,11 @@ internal static class InstallerOperations
     public static void InstallOrUpdate(DiscordInstall install, byte[] verifiedBundle)
     {
         EnsureDiscordClosed(install.Channel);
+        var status = GetInstallStatus(install);
+        if (!status.CanInstall) throw new InvalidOperationException(status.Message);
         string app = Path.Combine(install.Resources, "app.asar");
         string backup = Path.Combine(install.Resources, "_app.asar");
         bool owned = IsNexcordLoader(app);
-        if (File.Exists(backup) && !owned)
-            throw new InvalidOperationException("Discord is already patched by another mod, or a prior installation was interrupted. Nexcord will not overwrite it.");
-        if (!owned && new FileInfo(app).Length < 128 * 1024)
-            throw new InvalidOperationException("Discord's app.asar looks modified. Uninstall the previous mod first.");
 
         Directory.CreateDirectory(DataDir);
         string temporary = BundlePath + ".download";
@@ -228,6 +215,7 @@ internal sealed class InstallerWindow : Form
     private readonly Button _install = new();
     private readonly Button _uninstall = new();
     private readonly Button _refresh = new();
+    private readonly Button _browse = new();
 
     public InstallerWindow()
     {
@@ -247,13 +235,17 @@ internal sealed class InstallerWindow : Form
         var note = new Label { Text = "Install or update Nexcord in your existing Discord app.", Left = 26, Top = 70,
             Width = 600, Height = 30, ForeColor = Color.Gainsboro };
         var selectLabel = new Label { Text = "Discord installation", Left = 26, Top = 111, Width = 240, Height = 25 };
-        _discords.SetBounds(26, 139, 492, 30);
+        _discords.SetBounds(26, 139, 348, 30);
         _discords.DropDownStyle = ComboBoxStyle.DropDownList;
         _discords.BackColor = Color.FromArgb(36, 36, 44);
         _discords.ForeColor = Color.White;
+        _discords.SelectedIndexChanged += (_, _) => UpdateAvailability();
         _refresh.Text = "Refresh";
-        _refresh.SetBounds(526, 138, 105, 32);
+        _refresh.SetBounds(382, 138, 100, 32);
         _refresh.Click += (_, _) => RefreshInstalls();
+        _browse.Text = "Browse...";
+        _browse.SetBounds(490, 138, 141, 32);
+        _browse.Click += (_, _) => BrowseInstall();
 
         _install.Text = "Install / Update";
         _install.SetBounds(26, 188, 290, 42);
@@ -269,7 +261,7 @@ internal sealed class InstallerWindow : Form
         _status.ForeColor = Color.LightGray;
         _status.Text = "Preview installer. Downloads verified builds from Nexcord GitHub Releases.";
 
-        Controls.AddRange(new Control[] { heading, note, selectLabel, _discords, _refresh, _install, _uninstall, _status });
+        Controls.AddRange(new Control[] { heading, note, selectLabel, _discords, _refresh, _browse, _install, _uninstall, _status });
         RefreshInstalls();
     }
 
@@ -283,25 +275,81 @@ internal sealed class InstallerWindow : Form
 
     private void RefreshInstalls()
     {
+        var previous = _discords.SelectedItem as DiscordInstall;
+        var installs = InstallerOperations.FindDiscord().ToList();
+        if (previous != null && !installs.Any(i => i.Resources.Equals(previous.Resources, StringComparison.OrdinalIgnoreCase)))
+            installs.Add(previous);
+
         _discords.Items.Clear();
-        foreach (var item in InstallerOperations.FindDiscord()) _discords.Items.Add(item);
-        if (_discords.Items.Count != 0)
+        foreach (var item in installs) _discords.Items.Add(item);
+        if (installs.Count > 0)
         {
-            _discords.SelectedIndex = 0;
-            _status.Text = "Ready. Choose a Discord installation above.";
+            int previousIndex = installs.FindIndex(i =>
+                previous != null && i.Resources.Equals(previous.Resources, StringComparison.OrdinalIgnoreCase));
+            _discords.SelectedIndex = previousIndex >= 0 ? previousIndex : 0;
         }
-        else _status.Text = "No standard Discord Stable, PTB or Canary installation found.";
+        UpdateAvailability();
+    }
+
+    private void BrowseInstall()
+    {
+        using var folder = new FolderBrowserDialog
+        {
+            Description = "Choose the Discord installation folder, app-version folder, or resources folder",
+            UseDescriptionForTitle = true,
+            ShowNewFolderButton = false
+        };
+        if (folder.ShowDialog(this) != DialogResult.OK) return;
+
+        if (!DiscordDiscovery.TryResolve(folder.SelectedPath, out var install, out var error) || install is null)
+        {
+            _status.Text = error;
+            MessageBox.Show(error, "Couldn't find a Discord installation", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        for (int i = 0; i < _discords.Items.Count; i++)
+        {
+            if (_discords.Items[i] is DiscordInstall existing
+                && existing.Resources.Equals(install.Resources, StringComparison.OrdinalIgnoreCase))
+            {
+                _discords.SelectedIndex = i;
+                UpdateAvailability();
+                return;
+            }
+        }
+        _discords.Items.Add(install);
+        _discords.SelectedItem = install;
+        UpdateAvailability();
+    }
+
+    private void UpdateAvailability(bool updateMessage = true)
+    {
+        if (_discords.SelectedItem is not DiscordInstall install)
+        {
+            _install.Enabled = false;
+            _uninstall.Enabled = false;
+            if (updateMessage)
+                _status.Text = "Discord not detected automatically. Click Browse and choose its installation folder.";
+            return;
+        }
+
+        var state = InstallerOperations.GetInstallStatus(install);
+        _install.Enabled = state.CanInstall;
+        _uninstall.Enabled = state.CanUninstall;
+        if (updateMessage) _status.Text = state.Message;
     }
 
     private async Task InstallAsync()
     {
         if (_discords.SelectedItem is not DiscordInstall discord) return;
+        if (!InstallerOperations.GetInstallStatus(discord).CanInstall) { UpdateAvailability(); return; }
         var confirm = MessageBox.Show(
             $"This will patch Discord {discord.Channel} on your PC. Close Discord first. Continue?",
             "Nexcord development build", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
         if (confirm != DialogResult.Yes) return;
 
-        _install.Enabled = _uninstall.Enabled = _refresh.Enabled = false;
+        _install.Enabled = _uninstall.Enabled = _refresh.Enabled = _browse.Enabled = false;
         try
         {
             _status.Text = "Downloading Nexcord from GitHub and verifying SHA-256...";
@@ -316,7 +364,11 @@ internal sealed class InstallerWindow : Form
             _status.Text = "Installation stopped: " + ex.Message;
             MessageBox.Show(ex.Message, "Nexcord installer", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
-        finally { _install.Enabled = _uninstall.Enabled = _refresh.Enabled = true; }
+        finally
+        {
+            _refresh.Enabled = _browse.Enabled = true;
+            UpdateAvailability(updateMessage: false);
+        }
     }
 
     private void Uninstall()
@@ -327,6 +379,7 @@ internal sealed class InstallerWindow : Form
         try
         {
             InstallerOperations.Uninstall(discord);
+            UpdateAvailability(updateMessage: false);
             _status.Text = "Original Discord restored. You may now launch Discord normally.";
         }
         catch (Exception ex)
