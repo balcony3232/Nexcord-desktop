@@ -28,15 +28,12 @@ import { Margins } from "@utils/margins";
 import { isAnyPluginDev } from "@utils/misc";
 import { relaunch } from "@utils/native";
 import { promptToRestart } from "@utils/promptToRestart";
-import { GuildMemberStore, React, useMemo, UserStore } from "@webpack/common";
+import { GuildMemberStore, React, UserStore } from "@webpack/common";
 
 import { DonateButtonComponent } from "./DonateButton";
 import { MacOSVibrancySettings } from "./MacVibrancySettings";
 import { NotificationSection } from "./NotificationSettings";
 import { WindowsMaterialSettings } from "./WindowsMaterialSettings";
-
-const DEFAULT_DONATE_IMAGE = "https://cdn.discordapp.com/emojis/1026533090627174460.png";
-const SHIGGY_DONATE_IMAGE = "https://equicord.org/assets/favicon.png";
 
 const VENNIE_DONATOR_IMAGE = "https://cdn.discordapp.com/emojis/1238120638020063377.png";
 const COZY_CONTRIB_IMAGE = "https://cdn.discordapp.com/emojis/1026533070955872337.png";
@@ -173,11 +170,6 @@ function Switches() {
 }
 
 function EquicordSettings() {
-    const donateImage = useMemo(() =>
-        Math.random() > 0.5 ? DEFAULT_DONATE_IMAGE : SHIGGY_DONATE_IMAGE,
-        []
-    );
-
     const user = UserStore?.getCurrentUser();
 
     return (
@@ -200,15 +192,23 @@ function EquicordSettings() {
                     <DonateButtonComponent donated={true} />
                 </SpecialCard>
             ) : (
-                <SpecialCard
-                    title="Support the Project"
-                    description="Please consider supporting the development of Equicord by donating!"
-                    cardImage={donateImage}
-                    backgroundImage={DONOR_BACKGROUND_IMAGE}
-                    backgroundColor="#c3a3ce"
-                >
-                    <DonateButtonComponent />
-                </SpecialCard>
+                <div style={{
+                    padding: "16px 18px",
+                    borderRadius: 12,
+                    border: "1px solid var(--border-subtle)",
+                    background: "var(--background-surface-high)",
+                    marginBottom: 20,
+                }}>
+                    <Heading tag="h3">Welcome to Nexcord</Heading>
+                    <Paragraph className={Margins.top8}>
+                        Your Discord, your setup. Manage plugins, appearance and updates here.
+                        Discord's original theme stays the default.
+                    </Paragraph>
+                    <Paragraph className={Margins.top8}>
+                        Based on the open-source Equicord and Vencord projects.
+                        Their original credits and support links remain available under About Nexcord.
+                    </Paragraph>
+                </div>
             )}
             {isAnyPluginDev(user?.id) && (
                 <SpecialCard
@@ -277,7 +277,7 @@ function EquicordSettings() {
 
             <Heading className={Margins.top20}>Client Settings</Heading>
             <Paragraph className={Margins.bottom16}>
-                Configure how Equicord behaves and integrates with Discord. These settings affect the Discord client's appearance and behavior.
+                Configure how Nexcord behaves and integrates with Discord. These settings affect the Discord client's appearance and behavior.
             </Paragraph>
             <Notice.Info className={Margins.bottom20} style={{ width: "100%" }}>
                 You can customize where this settings section appears in Discord's settings menu by configuring the{" "}
@@ -300,7 +300,7 @@ function EquicordSettings() {
     );
 }
 
-export default wrapTab(EquicordSettings, "Equicord Settings");
+export default wrapTab(EquicordSettings, "Nexcord Settings");
 
 export function isEquicordDonor(userId: string): boolean {
     const donorBadges = BadgeAPI.getEquicordDonorBadges(userId);

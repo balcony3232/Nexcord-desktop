@@ -23,7 +23,9 @@ export default function NexcordTab() {
             <h3>Early development build</h3>
             <p>Custom loading facts are supplied by LoadingQuotes. Native profile cosmetics, installer automation and other features are still in development.</p>
             <p><a href="https://github.com/balcony3232/Nexcord-desktop" target="_blank" rel="noreferrer">Nexcord source and releases</a></p>
-            <p style={{ opacity: .65 }}>GPL-3.0-or-later. Nexcord is not affiliated with Discord, Equicord or Vencord. See the source repository for upstream credits.</p>
+            <h3>Upstream projects and support</h3>
+            <p>Nexcord builds on the work of <a href="https://github.com/Equicord/Equicord" target="_blank" rel="noreferrer">Equicord</a> and <a href="https://github.com/Vendicated/Vencord" target="_blank" rel="noreferrer">Vencord</a>. You can support those projects through their official sites.</p>
+            <p style={{ opacity: .65 }}>GPL-3.0-or-later. Nexcord is not affiliated with Discord, Equicord or Vencord. Original licence and copyright notices are retained in the source repository.</p>
         </SettingsTab>
     );
 }
