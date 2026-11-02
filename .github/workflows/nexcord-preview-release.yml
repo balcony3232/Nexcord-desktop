@@ -53,6 +53,11 @@ jobs:
         shell: pwsh
         run: |
           if (-not (Test-Path installer/out/NexcordInstaller.exe)) { throw "Missing NexcordInstaller.exe" }
+      - name: Self-test installer patch/restore in temporary directory
+        shell: pwsh
+        run: |
+          & installer/out/NexcordInstaller.exe --self-test
+          if ($LASTEXITCODE -ne 0) { throw "Nexcord installer self-test failed" }
       - uses: actions/upload-artifact@v4
         with:
           name: nexcord-windows-installer

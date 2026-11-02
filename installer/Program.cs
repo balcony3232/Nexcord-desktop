@@ -340,9 +340,11 @@ internal sealed class InstallerWindow : Form
 internal static class Program
 {
     [STAThread]
-    private static void Main()
+    private static int Main(string[] args)
     {
+        if (args.Contains("--self-test")) return InstallerSelfTests.Run();
         ApplicationConfiguration.Initialize();
         Application.Run(new InstallerWindow());
+        return 0;
     }
 }
