@@ -37,6 +37,34 @@ internal static class InstallerSelfTests
             catch (InvalidOperationException) { refusedForeignPatch = true; }
             Assert(refusedForeignPatch, "Installer failed to refuse another mod's backup marker");
 
+            // Test discovery of a nonstandard Discord installation that the
+            // automatic %LOCALAPPDATA% search would not normally find.
+            string customRoot = Path.Combine(dir, "CustomFolder");
+            string versionDir = Path.Combine(customRoot, "app-1.0.9001");
+            string customResources = Path.Combine(versionDir, "resources");
+            Directory.CreateDirectory(customResources);
+            File.WriteAllBytes(Path.Combine(versionDir, "DiscordCanary.exe"), new byte[] { 1, 2, 3 });
+            File.WriteAllBytes(Path.Combine(customResources, "app.asar"), original);
+
+            Assert(DiscordDiscovery.TryResolve(customRoot, out var manualRoot, out var rootError)
+                && manualRoot?.Channel == "Canary" && manualRoot.Resources == customResources,
+                "Manual root discovery failed: " + rootError);
+            Assert(DiscordDiscovery.TryResolve(versionDir, out var manualVersion, out _)
+                && manualVersion?.Resources == customResources, "Manual version discovery failed");
+            Assert(DiscordDiscovery.TryResolve(customResources, out var manualResources, out _)
+                && manualResources?.Resources == customResources, "Manual resources discovery failed");
+            Assert(DiscordDiscovery.TryResolve(Path.Combine(versionDir, "DiscordCanary.exe"), out var manualExe, out _)
+                && manualExe?.Channel == "Canary", "Manual Discord executable discovery failed");
+            Assert(!DiscordDiscovery.TryResolve(dir, out _, out _),
+                "Manual discovery accepted unrelated non-Discord folder");
+
+            File.Move(Path.Combine(customResources, "app.asar"), Path.Combine(customResources, "_app.asar"));
+            Assert(DiscordDiscovery.TryResolve(customRoot, out var foreignInstall, out _)
+                && foreignInstall is not null, "Modified Discord installation was not discoverable");
+            Assert(foreignInstall is not null && !InstallerOperations.GetInstallStatus(foreignInstall).CanInstall,
+                "Another mod was not blocked");
+            File.Move(Path.Combine(customResources, "_app.asar"), Path.Combine(customResources, "app.asar"));
+
             Console.WriteLine("Nexcord installer self-test: PASS");
             return 0;
         }
