@@ -25,7 +25,8 @@ export type ShopItem = {
     category?: string;
 };
 
-const CACHE_KEY = "nexcord.collectibles-catalog.v1";
+// Refresh cached entries when their individual/bundle SKU schema changes.
+const CACHE_KEY = "nexcord.collectibles-catalog.v2";
 const SELECT_KEY = "nexcord.collectibles-selected.v1";
 const ONE_DAY = 24 * 60 * 60 * 1000;
 const MAX_PRODUCTS = 1500;
