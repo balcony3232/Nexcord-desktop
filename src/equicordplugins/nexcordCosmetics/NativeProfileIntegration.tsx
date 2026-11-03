@@ -15,6 +15,7 @@ import { applyAsset, getAppearance, importAsset, listAssets, loadCosmetics, subs
 import type { CosmeticKind } from "./storage";
 import type { ShopKind } from "./ShopCatalog";
 import { ShopGallery } from "./ShopGallery";
+import { scanNativeEffectCard, stopNativeEffectCard } from "./EffectCardOverlay";
 
 type Surface = "sidebar" | "picker";
 type NativeKind = CosmeticKind | ShopKind;
@@ -189,6 +190,7 @@ function scan() {
             if (!rail) continue;
             addTrigger(heading, "banner", "sidebar");
             hideEditorNitroPromotion(rail);
+            scanNativeEffectCard(rail, UserStore.getCurrentUser()!.id);
             break;
         }
         for (const heading of labels.get("Avatar & Decoration") ?? []) {
@@ -243,6 +245,7 @@ export function startNativeProfileIntegration() {
 }
 
 export function stopNativeProfileIntegration() {
+    stopNativeEffectCard();
     observer?.disconnect();
     observer = undefined;
     if (scanTimer) clearTimeout(scanTimer);
