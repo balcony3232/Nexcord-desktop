@@ -195,7 +195,9 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
     const [, refresh] = React.useReducer((n: number) => n + 1, 0);
     React.useEffect(() => subscribe(refresh), []);
 
-    const width = surface === "sidebar" ? 335 : 375;
+    // The catalogue deserves a readable, independent panel beside Discord's
+    // profile editor, rather than a narrow menu overlapping its left rail.
+    const width = 470;
     const label = kind === "decoration" ? "avatar decoration" : kind === "effect" ? "profile effect" : kind;
     const customKind = kind === "banner" || kind === "nameplate";
     const assets = customKind ? listAssets(kind as CosmeticKind) : [];
@@ -206,11 +208,18 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
         const updatePosition = () => {
             const rect = trigger.current?.getBoundingClientRect();
             if (!rect) return;
-            const left = Math.max(8, Math.min(rect.left, window.innerWidth - width - 8));
-            const panelHeight = 390;
-            const top = rect.bottom + panelHeight + 8 > window.innerHeight
-                ? Math.max(8, rect.top - panelHeight - 6)
-                : rect.bottom + 7;
+            const gap = 12;
+            const viewportPadding = 12;
+            const rail = surface === "sidebar" ? getProfileRail(trigger.current!) : undefined;
+            const naturalLeft = (rail?.getBoundingClientRect().right ?? rect.right) + gap;
+            const left = naturalLeft + width + viewportPadding <= window.innerWidth
+                ? naturalLeft
+                : Math.max(viewportPadding, Math.min(rect.left, window.innerWidth - width - viewportPadding));
+            // Keep the editor vertically anchored, but constrain the full
+            // Shop catalogue to the screen. Only its item grid should scroll.
+            const panelHeight = Math.min(570, window.innerHeight - 2 * viewportPadding);
+            const top = Math.max(viewportPadding,
+                Math.min(rect.top - 18, window.innerHeight - panelHeight - viewportPadding));
             setPosition({ left, top });
         };
         updatePosition();
