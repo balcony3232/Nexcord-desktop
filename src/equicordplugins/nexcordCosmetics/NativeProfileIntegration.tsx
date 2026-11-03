@@ -1,159 +1,154 @@
 /*
- * Nexcord: inline controls inside Discord's real profile customisation UI.
+ * Nexcord - native profile-editor controls
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
- * This integration attaches small React roots to existing Discord DOM sections
- * without replacing Discord profile save handlers, purchase checks, or account
- * state. It fails closed when the expected editor labels are not present.
+ * Important: do not insert whole galleries into Discord's flex/grid layout.
+ * Mount one compact, inline trigger INSIDE the text heading instead. Its
+ * gallery is a portal (fixed-position overlay), so it cannot push original
+ * Discord settings or tiles around. No Discord save/API hooks are patched.
  */
 import { Logger } from "@utils/Logger";
-import { createRoot, React, showToast, UserStore } from "@webpack/common";
+import { createRoot, React, ReactDOM, showToast, UserStore } from "@webpack/common";
 import type { Root } from "react-dom/client";
 
 import { applyAsset, getAppearance, importAsset, listAssets, loadCosmetics, subscribe } from "./storage";
 import type { CosmeticKind } from "./storage";
 
 type Surface = "sidebar" | "picker";
-type Slot = { root: Root; kind: CosmeticKind; surface: Surface; };
+interface Slot {
+    kind: CosmeticKind;
+    surface: Surface;
+    root: Root;
+    heading: HTMLElement;
+}
 const logger = new Logger("NexcordNativeProfile");
 const slots = new Map<HTMLElement, Slot>();
 let observer: MutationObserver | undefined;
 let scanTimer: ReturnType<typeof setTimeout> | undefined;
-let scanActive = false;
+let scanning = false;
 
-// These are visible labels on Discord's current English profile editor.
-// If Discord renames them, this integration simply doesn't insert anything.
-const EDITOR_MARKERS = ["Avatar & Decoration", "Theme & Banner", "Display Name Style"];
-const TITLE = {
-    banner: "Theme & Banner",
-    nameplate: "Nameplate"
-} as const;
-const PICKER_TITLE = "Change Nameplate";
-const SHOP_HEADING = "See What's in Shop";
+const EDITOR_LABELS = ["Nameplate", "Avatar & Decoration", "Display Name Style", "Theme & Banner"];
+const NATIVE_NAMEPLATE_TITLE = "Change Nameplate";
+const OWNED_NAMEPLATES = "Your Nameplates";
 
-function exactTextNodes(search: ReadonlySet<string>): Map<string, HTMLElement[]> {
-    const result = new Map<string, HTMLElement[]>();
-    if (!document.body) return result;
+function labelElements(labels: Set<string>) {
+    const matches = new Map<string, HTMLElement[]>();
+    if (!document.body) return matches;
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     let node: Node | null;
     while ((node = walker.nextNode())) {
         const value = node.textContent?.trim();
-        if (!value || !search.has(value)) continue;
-        const element = node.parentElement;
-        if (!element || element.closest("[data-nexcord-native-host]")) continue;
-        const list = result.get(value) ?? [];
-        list.push(element);
-        result.set(value, list);
+        if (!value || !labels.has(value)) continue;
+        const parent = node.parentElement;
+        if (!parent || parent.closest("[data-nexcord-native-host]")) continue;
+        if (!parent.isConnected) continue;
+        const list = matches.get(value) ?? [];
+        list.push(parent);
+        matches.set(value, list);
     }
-    return result;
+    return matches;
 }
 
-function headingContainer(element: HTMLElement): HTMLElement {
-    // Prefer the label row, leaving the original Discord tiles intact.
-    let anchor = element;
-    for (let i = 0; i < 2; i++) {
-        const parent = anchor.parentElement;
-        if (!parent) break;
-        const text = parent.textContent?.trim() ?? "";
-        if (text.length > 65 || text.includes("Avatar & Decoration") || text.includes("Display Name Style")) break;
-        anchor = parent;
+/** Verify labels belong to the narrow native left rail, not some other UI. */
+function getProfileRail(heading: HTMLElement): HTMLElement | undefined {
+    let element: HTMLElement | null = heading;
+    for (let depth = 0; depth < 12 && element; depth++, element = element.parentElement) {
+        const box = element.getBoundingClientRect();
+        if (box.width < 165 || box.width > 440 || box.height < 180) continue;
+        const text = element.textContent ?? "";
+        if (EDITOR_LABELS.every(label => text.includes(label))) return element;
     }
-    return anchor;
 }
 
-function insertSlot(anchor: HTMLElement, kind: CosmeticKind, surface: Surface, before = false) {
-    const sibling = before ? anchor.previousElementSibling : anchor.nextElementSibling;
-    if (sibling instanceof HTMLElement && sibling.dataset.nexcordNativeHost === surface + "-" + kind) return;
-    const container = document.createElement("div");
-    container.dataset.nexcordNativeHost = surface + "-" + kind;
-    container.className = "nexcord-native-host nexcord-native-" + surface;
-    if (before) anchor.before(container);
-    else anchor.after(container);
+/** Verify heading is inside the native nameplate purchase/selection modal. */
+function inNameplatePicker(heading: HTMLElement): boolean {
+    let element: HTMLElement | null = heading;
+    for (let depth = 0; depth < 13 && element; depth++, element = element.parentElement) {
+        const box = element.getBoundingClientRect();
+        if (box.width < 350 || box.width > 1100) continue;
+        const text = element.textContent ?? "";
+        if (text.includes(NATIVE_NAMEPLATE_TITLE) && text.includes(OWNED_NAMEPLATES)) return true;
+    }
+    return false;
+}
+
+function addTrigger(heading: HTMLElement, kind: CosmeticKind, surface: Surface) {
+    if (heading.closest("button,[role=button],a")) return;
+    // Only one active trigger per native heading. React may replace the whole
+    // heading later, in which case the detached one is cleaned up on rescan.
+    if (heading.querySelector('[data-nexcord-native-host]')) return;
+    const host = document.createElement("span");
+    host.className = "nexcord-native-trigger-host";
+    host.dataset.nexcordNativeHost = surface + "-" + kind;
+    heading.appendChild(host);
     try {
-        const root = createRoot(container);
-        slots.set(container, { root, kind, surface });
-        root.render(<InlineGallery kind={kind} surface={surface} />);
-    } catch (error) {
-        logger.error("Failed to mount native cosmetic controls", error);
-        slots.delete(container);
-        container.remove();
-    }
-}
-
-function findPickerAncestor(element: HTMLElement): HTMLElement | undefined {
-    let ancestor: HTMLElement | null = element;
-    for (let i = 0; i < 11 && ancestor; i++, ancestor = ancestor.parentElement) {
-        const text = ancestor.textContent ?? "";
-        if (text.includes(PICKER_TITLE) && text.includes(SHOP_HEADING) && text.includes("Your Nameplates"))
-            return ancestor;
+        const root = createRoot(host);
+        slots.set(host, { root, kind, surface, heading });
+        root.render(<NativeTrigger kind={kind} surface={surface} />);
+    } catch (err) {
+        slots.delete(host);
+        host.remove();
+        logger.error("Failed mounting native profile control", err);
     }
 }
 
 function scan() {
-    if (!observer || scanActive) return;
-    scanActive = true;
+    if (!observer || scanning) return;
+    scanning = true;
     try {
         for (const [host, slot] of slots) {
-            if (host.isConnected) continue;
-            slot.root.unmount();
+            if (host.isConnected && slot.heading.isConnected) continue;
             slots.delete(host);
-        }
-        const labels = new Set([...EDITOR_MARKERS, "Nameplate", PICKER_TITLE, SHOP_HEADING, "Your Nameplates"]);
-        const nodes = exactTextNodes(labels);
-        const currentUserId = UserStore.getCurrentUser()?.id;
-        if (!currentUserId) return;
-
-        // Require three independent native editor labels, preventing an
-        // accidental mount on normal user profiles and plugin settings.
-        if (EDITOR_MARKERS.every(marker => nodes.has(marker))) {
-            for (const kind of ["banner", "nameplate"] as const) {
-                for (const title of nodes.get(TITLE[kind]) ?? []) {
-                    const anchor = headingContainer(title);
-                    const existing = anchor.nextElementSibling;
-                    if (existing instanceof HTMLElement && existing.dataset.nexcordNativeHost === "sidebar-" + kind)
-                        continue;
-                    if (anchor.closest("[data-nexcord-native-host]")) continue;
-                    insertSlot(anchor, kind, "sidebar");
-                    // Only the first matching section in the active editor.
-                    break;
-                }
-            }
+            // React might still be committing Discord's own tree, so do not
+            // synchronously unmount a React root from a MutationObserver.
+            queueMicrotask(() => slot.root.unmount());
         }
 
-        // The actual Discord "Change Nameplate" picker receives a local
-        // gallery above its normal "See What's in Shop" heading. Discord's
-        // original Apply button continues to handle real purchases/owned items.
-        if (nodes.has(PICKER_TITLE)) {
-            for (const heading of nodes.get(SHOP_HEADING) ?? []) {
-                if (!findPickerAncestor(heading)) continue;
-                const anchor = headingContainer(heading);
-                const previous = anchor.previousElementSibling;
-                if (previous instanceof HTMLElement && previous.dataset.nexcordNativeHost === "picker-nameplate")
-                    continue;
-                insertSlot(anchor, "nameplate", "picker", true);
+        const labels = labelElements(new Set([...EDITOR_LABELS, NATIVE_NAMEPLATE_TITLE, OWNED_NAMEPLATES]));
+        if (!UserStore.getCurrentUser()?.id) return;
+
+        const bannerLabels = labels.get("Theme & Banner") ?? [];
+        for (const heading of bannerLabels) {
+            if (!getProfileRail(heading)) continue;
+            addTrigger(heading, "banner", "sidebar");
+            break;
+        }
+        const nameplateLabels = labels.get("Nameplate") ?? [];
+        for (const heading of nameplateLabels) {
+            if (!getProfileRail(heading)) continue;
+            addTrigger(heading, "nameplate", "sidebar");
+            break;
+        }
+
+        // Add a compact My Custom selector in the *real* Change Nameplate
+        // dialog, next to "Your Nameplates", without moving Discord's grid.
+        if (labels.has(NATIVE_NAMEPLATE_TITLE)) {
+            for (const heading of labels.get(OWNED_NAMEPLATES) ?? []) {
+                if (!inNameplatePicker(heading)) continue;
+                addTrigger(heading, "nameplate", "picker");
                 break;
             }
         }
-    } catch (error) {
-        logger.error("Error scanning Discord's profile editor", error);
+    } catch (err) {
+        logger.error("Native profile scan failed", err);
     } finally {
-        scanActive = false;
+        scanning = false;
     }
 }
 
 function scheduleScan() {
-    if (scanTimer) return;
+    if (scanTimer || !observer) return;
     scanTimer = setTimeout(() => {
         scanTimer = undefined;
         scan();
-    }, 220);
+    }, 300);
 }
 
 export function startNativeProfileIntegration() {
-    if (observer || typeof document === "undefined") return;
+    if (observer || typeof document === "undefined" || !document.body) return;
     observer = new MutationObserver(scheduleScan);
     observer.observe(document.body, { childList: true, subtree: true });
-    void loadCosmetics().catch(error => logger.error("Cannot load custom cosmetics", error));
+    void loadCosmetics().catch(err => logger.error("Cannot load local cosmetics", err));
     scheduleScan();
 }
 
@@ -162,125 +157,162 @@ export function stopNativeProfileIntegration() {
     observer = undefined;
     if (scanTimer) clearTimeout(scanTimer);
     scanTimer = undefined;
-    // Unmount in a microtask to avoid unmounting during a React commit.
-    const old = [...slots.entries()];
+    const saved = [...slots.entries()];
     slots.clear();
     queueMicrotask(() => {
-        for (const [element, slot] of old) {
+        for (const [host, slot] of saved) {
             slot.root.unmount();
-            element.remove();
+            host.remove();
         }
     });
 }
 
-function InlineGallery({ kind, surface }: { kind: CosmeticKind; surface: Surface; }) {
+function NativeTrigger({ kind, surface }: { kind: CosmeticKind; surface: Surface; }) {
     const userId = UserStore.getCurrentUser()?.id;
-    const [, redraw] = React.useReducer((n: number) => n + 1, 0);
+    const trigger = React.useRef<HTMLButtonElement>(null);
+    const panel = React.useRef<HTMLDivElement>(null);
+    const input = React.useRef<HTMLInputElement>(null);
+    const [open, setOpen] = React.useState(false);
     const [busy, setBusy] = React.useState(false);
     const [error, setError] = React.useState("");
-    const picker = React.useRef<HTMLInputElement>(null);
+    const [position, setPosition] = React.useState({ left: 16, top: 16 });
+    const [, refresh] = React.useReducer((n: number) => n + 1, 0);
+    React.useEffect(() => subscribe(refresh), []);
 
-    React.useEffect(() => subscribe(redraw), []);
-    if (!userId) return null;
-
-    const selectedId = getAppearance(userId)[kind];
+    const width = surface === "sidebar" ? 300 : 350;
+    const label = kind === "banner" ? "banner" : "nameplate";
     const assets = listAssets(kind);
-    const label = kind === "banner" ? "Banner" : "Nameplate";
+    const selected = userId ? getAppearance(userId)[kind] : undefined;
 
-    async function select(id: string | undefined) {
+    React.useEffect(() => {
+        if (!open) return;
+        const updatePosition = () => {
+            const rect = trigger.current?.getBoundingClientRect();
+            if (!rect) return;
+            const left = Math.max(8, Math.min(rect.left, window.innerWidth - width - 8));
+            const panelHeight = 265;
+            const top = rect.bottom + panelHeight + 8 > window.innerHeight
+                ? Math.max(8, rect.top - panelHeight - 6)
+                : rect.bottom + 7;
+            setPosition({ left, top });
+        };
+        updatePosition();
+        const onPointerDown = (event: PointerEvent) => {
+            if (trigger.current?.contains(event.target as Node)) return;
+            if (panel.current?.contains(event.target as Node)) return;
+            setOpen(false);
+        };
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape") setOpen(false);
+        };
+        document.addEventListener("pointerdown", onPointerDown, true);
+        document.addEventListener("keydown", onKeyDown);
+        window.addEventListener("resize", updatePosition);
+        window.addEventListener("scroll", updatePosition, true);
+        return () => {
+            document.removeEventListener("pointerdown", onPointerDown, true);
+            document.removeEventListener("keydown", onKeyDown);
+            window.removeEventListener("resize", updatePosition);
+            window.removeEventListener("scroll", updatePosition, true);
+        };
+    }, [open, width]);
+
+    async function apply(id: string | undefined) {
         if (!userId || busy) return;
         setBusy(true);
         setError("");
         try {
             await applyAsset(userId, kind, id);
-            showToast({
-                text: label + " applied locally. Reopen the profile if the preview doesn't refresh.",
-                variant: "success"
-            });
-        } catch (e) {
-            setError(e instanceof Error ? e.message : String(e));
+            showToast({ text: "Local " + label + " applied — only you can see it", variant: "success" });
+            setOpen(false);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : String(err));
         } finally {
             setBusy(false);
         }
     }
 
-    async function addFile(file: File | undefined) {
+    async function importFile(file: File | undefined) {
         if (!file || !userId || busy) return;
         setBusy(true);
         setError("");
         try {
             const asset = await importAsset(kind, file);
             await applyAsset(userId, kind, asset.id);
-            showToast({ text: "Imported and applied local " + label.toLowerCase(), variant: "success" });
-        } catch (e) {
-            setError(e instanceof Error ? e.message : String(e));
+            showToast({ text: "Custom " + label + " imported and applied locally", variant: "success" });
+            setOpen(false);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : String(err));
         } finally {
             setBusy(false);
         }
     }
 
     return (
-        <div className={"nexcord-inline-gallery nexcord-inline-gallery-" + surface}>
-            <div className="nexcord-inline-gallery-heading">
-                <strong>My Custom</strong>
-                <span title="These cosmetics are visible only in your Nexcord client">Only you</span>
-            </div>
-            <div className={"nexcord-inline-assets nexcord-inline-assets-" + kind}>
-                <button
-                    type="button"
-                    title={"Remove local " + label.toLowerCase()}
-                    className={"nexcord-inline-none" + (!selectedId ? " nexcord-inline-current" : "")}
-                    onClick={() => void select(undefined)}
-                    disabled={busy}
-                >
-                    <span>⊘</span>
-                    <small>None</small>
-                </button>
-                {assets.map(asset => (
-                    <button
-                        key={asset.id}
-                        type="button"
-                        title={asset.label}
-                        aria-label={"Apply local " + label.toLowerCase() + " " + asset.label}
-                        aria-pressed={selectedId === asset.id}
-                        className={"nexcord-inline-image" + (selectedId === asset.id ? " nexcord-inline-current" : "")}
-                        disabled={busy}
-                        onClick={() => void select(asset.id)}
-                    >
-                        <img src={asset.dataUrl} alt="" />
-                    </button>
-                ))}
-                <button
-                    type="button"
-                    title={"Import custom " + label.toLowerCase()}
-                    className="nexcord-inline-import"
-                    disabled={busy}
-                    onClick={() => picker.current?.click()}
-                >
-                    <span>+</span>
-                    <small>Import</small>
-                </button>
-            </div>
-            <input
-                type="file"
-                ref={picker}
-                hidden
-                accept="image/png,image/jpeg,image/webp,image/gif"
-                onChange={e => {
-                    void addFile(e.currentTarget.files?.[0]);
-                    e.currentTarget.value = "";
+        <>
+            <button
+                type="button"
+                ref={trigger}
+                className="nexcord-native-trigger"
+                title={"Open local custom " + label + "s"}
+                aria-expanded={open}
+                onClick={event => {
+                    event.stopPropagation();
+                    setOpen(value => !value);
                 }}
-            />
-            {surface === "picker" && (
-                <p className="nexcord-inline-note">
-                    Choosing a custom item applies it <strong>locally</strong>.
-                    Discord's Apply button is for your owned Discord nameplates.
-                </p>
+            >
+                My Custom
+            </button>
+            {open && ReactDOM.createPortal(
+                <div
+                    ref={panel}
+                    className="nexcord-native-popover"
+                    style={{ width, left: position.left, top: position.top }}
+                    onClick={event => event.stopPropagation()}
+                >
+                    <div className="nexcord-native-popover-title">
+                        <strong>My Custom {kind === "banner" ? "Banners" : "Nameplates"}</strong>
+                        <span>Only you</span>
+                    </div>
+                    <div className="nexcord-native-popover-grid">
+                        <button type="button" disabled={busy}
+                            className={!selected ? "nexcord-native-selected" : ""}
+                            title="Remove local cosmetic"
+                            onClick={() => void apply(undefined)}>
+                            <span className="nexcord-native-none-symbol">⊘</span>
+                            <small>None</small>
+                        </button>
+                        {assets.map(asset => (
+                            <button type="button" key={asset.id} title={asset.label}
+                                disabled={busy}
+                                aria-pressed={selected === asset.id}
+                                className={selected === asset.id ? "nexcord-native-selected" : ""}
+                                onClick={() => void apply(asset.id)}>
+                                <img src={asset.dataUrl} alt={asset.label} />
+                            </button>
+                        ))}
+                        <button type="button" disabled={busy}
+                            title={"Import " + label}
+                            onClick={() => input.current?.click()}>
+                            <span className="nexcord-native-none-symbol">+</span>
+                            <small>Import</small>
+                        </button>
+                    </div>
+                    <input type="file" ref={input} hidden accept="image/png,image/jpeg,image/webp,image/gif"
+                        onChange={event => {
+                            void importFile(event.currentTarget.files?.[0]);
+                            event.currentTarget.value = "";
+                        }}/>
+                    <p className="nexcord-native-popover-note">
+                        Local-only selections apply immediately. Discord's original
+                        Save and Apply controls are unchanged.
+                    </p>
+                    {kind === "nameplate" && <p className="nexcord-native-popover-note">
+                        Global native nameplate display is still being developed.
+                    </p>}
+                    {error && <p className="nexcord-native-popover-error" role="alert">{error}</p>}
+                </div>, document.body
             )}
-            {kind === "nameplate" && surface === "sidebar" && selectedId && (
-                <p className="nexcord-inline-note">Saved locally. Native nameplate rendering is still experimental.</p>
-            )}
-            {error && <p className="nexcord-inline-error" role="alert">{error}</p>}
-        </div>
+        </>
     );
 }
