@@ -58,3 +58,8 @@ This plugin adds compact **My Custom** controls beside Discord's original profil
 - Switching from Shop nameplates to imported image nameplates clears the alternative selection to avoid conflicting previews.
 - All changes are client-side visual presentation; they do not change Nitro, purchase records, permissions, or remotely visible Discord account data.
 - These new surfaces are version-dependent and require screenshot testing in the real Discord desktop client.
+
+## Member-row detection and selected effect editor tile
+- Covers both guild and group-DM member lists. Member rows are matched to the current user using an exact account ID in row attributes or the user's CDN avatar path; ambiguous display-name-only matches are ignored.
+- The native **Profile Effect & Frame** tile now shows the selected local effect's Shop thumbnail with a small My Custom label, without replacing the underlying button or modifying Discord profile data.
+- The popout effect renderer and nameplate editor rendering are unchanged.

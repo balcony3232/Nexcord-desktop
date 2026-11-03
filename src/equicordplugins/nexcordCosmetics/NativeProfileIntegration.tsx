@@ -17,6 +17,7 @@ import type { ShopKind } from "./ShopCatalog";
 import { ShopGallery } from "./ShopGallery";
 import { applyShopItem } from "./ShopCatalog";
 import { scanNativeNameplate, stopNativeNameplate } from "./NativeNameplate";
+import { scanNativeEffectTile, stopNativeEffectTile } from "./NativeEffectTile";
 import { scanNativeEffectCard, stopNativeEffectCard } from "./EffectCardOverlay";
 
 type Surface = "sidebar" | "picker";
@@ -202,11 +203,16 @@ function scan() {
         }
         // The effect and profile-frame sections share one Discord heading.
         // One compact button opens the Effects / Frames tabs.
-        for (const heading of labelElements(new Set(["Profile Effect & Frame"])).get("Profile Effect & Frame") ?? []) {
-            if (!getProfileRail(heading)) continue;
+        let effectTileMounted = false;
+        for (const heading of labels.get("Profile Effect & Frame") ?? []) {
+            const rail = getProfileRail(heading);
+            if (!rail) continue;
             addTrigger(heading, "effect", "sidebar");
+            scanNativeEffectTile(heading, rail, UserStore.getCurrentUser()!.id);
+            effectTileMounted = true;
             break;
         }
+        if (!effectTileMounted) stopNativeEffectTile();
         const nameplateLabels = labels.get("Nameplate") ?? [];
         let mountedNameplate = false;
         for (const heading of nameplateLabels) {
@@ -252,6 +258,7 @@ export function startNativeProfileIntegration() {
 }
 
 export function stopNativeProfileIntegration() {
+    stopNativeEffectTile();
     stopNativeNameplate();
     stopNativeEffectCard();
     observer?.disconnect();

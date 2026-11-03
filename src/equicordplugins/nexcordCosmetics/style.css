@@ -613,3 +613,44 @@
     height: 100%;
     border-radius: inherit;
 }
+
+
+/* Selected local effect shown inside Discord's existing effect tile. */
+.nexcord-effect-tile-host,
+.nexcord-local-effect-preview {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    pointer-events: none !important;
+    overflow: hidden;
+    border-radius: inherit;
+}
+.nexcord-effect-tile-host { z-index: 4; }
+.nexcord-local-effect-preview {
+    background: #282833;
+}
+.nexcord-local-effect-preview img {
+    position: absolute;
+    inset: 0;
+    height: 100%;
+    width: 100%;
+    object-fit: contain;
+    pointer-events: none;
+}
+.nexcord-local-effect-preview > span {
+    position: absolute;
+    left: 3px;
+    bottom: 3px;
+    right: 3px;
+    color: #fff;
+    font-size: 9px;
+    text-align: center;
+    background: rgba(18,17,24,.76);
+    border-radius: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 2px;
+}
