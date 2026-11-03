@@ -448,3 +448,43 @@
 .nexcord-shop-selected-preview strong { font-size: 12px; }
 .nexcord-shop-selected-preview span { font-size: 11px; color: #a8f0bc; }
 .nexcord-shop-selected-preview small { font-size: 10px; line-height: 1.35; color: #c0bfc8 !important; }
+
+
+/*
+ * Nexcord's local animated effects. Positioned over the actual center profile
+ * card; never captures clicks, never alters Nitro/Discord profile stores.
+ */
+.nexcord-effect-host,
+.nexcord-effect-card-layer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none !important;
+    user-select: none;
+    overflow: hidden;
+}
+.nexcord-effect-host {
+    z-index: 18;
+    border-radius: inherit;
+    isolation: isolate;
+}
+.nexcord-effect-card-layer img {
+    position: absolute;
+    pointer-events: none !important;
+    user-select: none;
+}
+.nexcord-effect-card-layer .nexcord-effect-reduced {
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    object-fit: contain;
+}
+.nexcord-shop-effect-status {
+    font-size: 10px;
+    line-height: 1.4;
+    color: #c9c2e9;
+    margin: 5px 0 0;
+}
+.nexcord-shop-effect-status.error { color: #f3bcba; }
