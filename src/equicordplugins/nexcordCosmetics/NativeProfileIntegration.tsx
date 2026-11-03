@@ -77,26 +77,54 @@ function getProfileRail(heading: HTMLElement): HTMLElement | undefined {
  * native product pickers, or any other Nitro advertising elsewhere.
  */
 function hideEditorNitroPromotion(rail: HTMLElement) {
-    const buttons = rail.querySelectorAll<HTMLElement>("button,[role='button']");
-    for (const button of buttons) {
+    const hide = (element: HTMLElement) => {
+        if (hiddenUpsellPanels.has(element)) return;
+        hiddenUpsellPanels.set(element, element.style.display);
+        element.style.display = "none";
+    };
+    for (const button of rail.querySelectorAll<HTMLElement>("button,[role='button']")) {
         if (button.textContent?.trim() !== "Preview Nitro") continue;
         let ancestor: HTMLElement | null = button;
-        for (let depth = 0; depth < 7 && ancestor && ancestor !== rail; depth++, ancestor = ancestor.parentElement) {
+        for (let depth = 0; depth < 8 && ancestor && ancestor !== rail; depth++, ancestor = ancestor.parentElement) {
             const text = ancestor.textContent ?? "";
             if (!text.includes("Preview Nitro") || !text.includes("Level up your look")) continue;
-            // Protect the surrounding profile editor from being hidden if
-            // Discord rearranges the components in a future version.
-            if (EDITOR_LABELS.some(label => text.includes(label))
+            // If Discord keeps "Display Name Style" inside the purple Nitro
+            // panel, don't hide the whole panel or the genuine styling UI.
+            const includesRealFields = EDITOR_LABELS.some(label => text.includes(label))
                 || BANNER_LABELS.some(label => text.includes(label))
-                || text.includes("Display Name Style")) return;
+                || text.includes("Display Name Style");
             const box = ancestor.getBoundingClientRect();
-            if (box.height > 360 || box.width > 440) return;
-            if (!hiddenUpsellPanels.has(ancestor)) {
-                hiddenUpsellPanels.set(ancestor, ancestor.style.display);
-                ancestor.style.display = "none";
+            if (!includesRealFields && box.height < 360 && box.width < 440) {
+                hide(ancestor);
+                return;
             }
+            break;
+        }
+
+        // Reduced-Nitro editor fallback: the promotional box sometimes also
+        // contains functional profile controls. Hide only its sales copy and
+        // Preview Nitro button, never the surrounding editor or style section.
+        hide(button);
+        const walker = document.createTreeWalker(rail, NodeFilter.SHOW_TEXT);
+        let textNode: Node | null;
+        while ((textNode = walker.nextNode())) {
+            if (!textNode.textContent?.includes("Level up your look")) continue;
+            let copy = textNode.parentElement;
+            let isolated = copy;
+            while (copy?.parentElement && copy.parentElement !== rail) {
+                const parent = copy.parentElement;
+                const content = parent.textContent ?? "";
+                if (content.includes("Display Name Style") ||
+                    content.includes("Preview Nitro") ||
+                    EDITOR_LABELS.some(label => content.includes(label)) ||
+                    BANNER_LABELS.some(label => content.includes(label))) break;
+                isolated = parent;
+                copy = parent;
+            }
+            if (isolated) hide(isolated);
             return;
         }
+        return;
     }
 }
 
@@ -136,6 +164,9 @@ function scan() {
     if (!observer || scanning) return;
     scanning = true;
     try {
+        for (const [element] of hiddenUpsellPanels) {
+            if (!element.isConnected) hiddenUpsellPanels.delete(element);
+        }
         for (const [host, slot] of slots) {
             if (host.isConnected && slot.heading.isConnected) continue;
             slots.delete(host);
