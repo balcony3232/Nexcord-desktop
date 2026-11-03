@@ -13,10 +13,13 @@ import type { Root } from "react-dom/client";
 
 import { applyAsset, getAppearance, importAsset, listAssets, loadCosmetics, subscribe } from "./storage";
 import type { CosmeticKind } from "./storage";
+import type { ShopKind } from "./ShopCatalog";
+import { ShopGallery } from "./ShopGallery";
 
 type Surface = "sidebar" | "picker";
+type NativeKind = CosmeticKind | ShopKind;
 interface Slot {
-    kind: CosmeticKind;
+    kind: NativeKind;
     surface: Surface;
     root: Root;
     heading: HTMLElement;
@@ -72,11 +75,11 @@ function inNameplatePicker(heading: HTMLElement): boolean {
     return false;
 }
 
-function addTrigger(heading: HTMLElement, kind: CosmeticKind, surface: Surface) {
+function addTrigger(heading: HTMLElement, kind: NativeKind, surface: Surface) {
     if (heading.closest("button,[role=button],a")) return;
     // Only one active trigger per native heading. React may replace the whole
     // heading later, in which case the detached one is cleaned up on rescan.
-    if (heading.querySelector('[data-nexcord-native-host]')) return;
+    if (heading.querySelector('[data-nexcord-native-host="' + surface + '-' + kind + '"]')) return;
     const host = document.createElement("span");
     host.className = "nexcord-native-trigger-host";
     host.dataset.nexcordNativeHost = surface + "-" + kind;
@@ -111,6 +114,18 @@ function scan() {
         for (const heading of bannerLabels) {
             if (!getProfileRail(heading)) continue;
             addTrigger(heading, "banner", "sidebar");
+            break;
+        }
+        for (const heading of labels.get("Avatar & Decoration") ?? []) {
+            if (!getProfileRail(heading)) continue;
+            addTrigger(heading, "decoration", "sidebar");
+            break;
+        }
+        // The effect and profile-frame sections share one Discord heading.
+        // One compact button opens the Effects / Frames tabs.
+        for (const heading of labelElements(new Set(["Profile Effect & Frame"])).get("Profile Effect & Frame") ?? []) {
+            if (!getProfileRail(heading)) continue;
+            addTrigger(heading, "effect", "sidebar");
             break;
         }
         const nameplateLabels = labels.get("Nameplate") ?? [];
@@ -167,7 +182,7 @@ export function stopNativeProfileIntegration() {
     });
 }
 
-function NativeTrigger({ kind, surface }: { kind: CosmeticKind; surface: Surface; }) {
+function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; }) {
     const userId = UserStore.getCurrentUser()?.id;
     const trigger = React.useRef<HTMLButtonElement>(null);
     const panel = React.useRef<HTMLDivElement>(null);
@@ -175,14 +190,16 @@ function NativeTrigger({ kind, surface }: { kind: CosmeticKind; surface: Surface
     const [open, setOpen] = React.useState(false);
     const [busy, setBusy] = React.useState(false);
     const [error, setError] = React.useState("");
+    const [tab, setTab] = React.useState<"custom" | "shop">(kind === "banner" || kind === "nameplate" ? "custom" : "shop");
     const [position, setPosition] = React.useState({ left: 16, top: 16 });
     const [, refresh] = React.useReducer((n: number) => n + 1, 0);
     React.useEffect(() => subscribe(refresh), []);
 
-    const width = surface === "sidebar" ? 300 : 350;
-    const label = kind === "banner" ? "banner" : "nameplate";
-    const assets = listAssets(kind);
-    const selected = userId ? getAppearance(userId)[kind] : undefined;
+    const width = surface === "sidebar" ? 335 : 375;
+    const label = kind === "decoration" ? "avatar decoration" : kind === "effect" ? "profile effect" : kind;
+    const customKind = kind === "banner" || kind === "nameplate";
+    const assets = customKind ? listAssets(kind as CosmeticKind) : [];
+    const selected = customKind && userId ? getAppearance(userId)[kind as CosmeticKind] : undefined;
 
     React.useEffect(() => {
         if (!open) return;
@@ -190,7 +207,7 @@ function NativeTrigger({ kind, surface }: { kind: CosmeticKind; surface: Surface
             const rect = trigger.current?.getBoundingClientRect();
             if (!rect) return;
             const left = Math.max(8, Math.min(rect.left, window.innerWidth - width - 8));
-            const panelHeight = 265;
+            const panelHeight = 390;
             const top = rect.bottom + panelHeight + 8 > window.innerHeight
                 ? Math.max(8, rect.top - panelHeight - 6)
                 : rect.bottom + 7;
@@ -218,11 +235,11 @@ function NativeTrigger({ kind, surface }: { kind: CosmeticKind; surface: Surface
     }, [open, width]);
 
     async function apply(id: string | undefined) {
-        if (!userId || busy) return;
+        if (!userId || busy || !customKind) return;
         setBusy(true);
         setError("");
         try {
-            await applyAsset(userId, kind, id);
+            await applyAsset(userId, kind as CosmeticKind, id);
             showToast({ text: "Local " + label + " applied — only you can see it", variant: "success" });
             setOpen(false);
         } catch (err) {
@@ -233,12 +250,12 @@ function NativeTrigger({ kind, surface }: { kind: CosmeticKind; surface: Surface
     }
 
     async function importFile(file: File | undefined) {
-        if (!file || !userId || busy) return;
+        if (!file || !userId || busy || !customKind) return;
         setBusy(true);
         setError("");
         try {
-            const asset = await importAsset(kind, file);
-            await applyAsset(userId, kind, asset.id);
+            const asset = await importAsset(kind as CosmeticKind, file);
+            await applyAsset(userId, kind as CosmeticKind, asset.id);
             showToast({ text: "Custom " + label + " imported and applied locally", variant: "success" });
             setOpen(false);
         } catch (err) {
@@ -271,44 +288,69 @@ function NativeTrigger({ kind, surface }: { kind: CosmeticKind; surface: Surface
                     onClick={event => event.stopPropagation()}
                 >
                     <div className="nexcord-native-popover-title">
-                        <strong>My Custom {kind === "banner" ? "Banners" : "Nameplates"}</strong>
+                        <strong>{kind === "banner" ? "Local Banners" :
+                            kind === "nameplate" ? "Local Nameplates" :
+                            kind === "decoration" ? "Avatar Decorations" : "Profile Effects & Frames"}</strong>
                         <span>Only you</span>
                     </div>
-                    <div className="nexcord-native-popover-grid">
-                        <button type="button" disabled={busy}
-                            className={!selected ? "nexcord-native-selected" : ""}
-                            title="Remove local cosmetic"
-                            onClick={() => void apply(undefined)}>
-                            <span className="nexcord-native-none-symbol">⊘</span>
-                            <small>None</small>
-                        </button>
-                        {assets.map(asset => (
-                            <button type="button" key={asset.id} title={asset.label}
-                                disabled={busy}
-                                aria-pressed={selected === asset.id}
-                                className={selected === asset.id ? "nexcord-native-selected" : ""}
-                                onClick={() => void apply(asset.id)}>
-                                <img src={asset.dataUrl} alt={asset.label} />
-                            </button>
-                        ))}
-                        <button type="button" disabled={busy}
-                            title={"Import " + label}
-                            onClick={() => input.current?.click()}>
-                            <span className="nexcord-native-none-symbol">+</span>
-                            <small>Import</small>
-                        </button>
-                    </div>
-                    <input type="file" ref={input} hidden accept="image/png,image/jpeg,image/webp,image/gif"
-                        onChange={event => {
-                            void importFile(event.currentTarget.files?.[0]);
-                            event.currentTarget.value = "";
-                        }}/>
-                    <p className="nexcord-native-popover-note">
-                        Local-only selections apply immediately. Discord's original
-                        Save and Apply controls are unchanged.
-                    </p>
+                    {customKind && kind !== "banner" && (
+                        <div className="nexcord-native-tabs">
+                            <button type="button" className={tab === "custom" ? "nexcord-native-tab-active" : ""}
+                                onClick={() => setTab("custom")}>My Images</button>
+                            <button type="button" className={tab === "shop" ? "nexcord-native-tab-active" : ""}
+                                onClick={() => setTab("shop")}>Discord Shop</button>
+                        </div>
+                    )}
+                    {tab === "custom" && customKind && (
+                        <>
+                            <div className="nexcord-native-popover-grid">
+                                <button type="button" disabled={busy}
+                                    className={!selected ? "nexcord-native-selected" : ""}
+                                    title="Remove local cosmetic"
+                                    onClick={() => void apply(undefined)}>
+                                    <span className="nexcord-native-none-symbol">⊘</span>
+                                    <small>None</small>
+                                </button>
+                                {assets.map(asset => (
+                                    <button type="button" key={asset.id} title={asset.label}
+                                        disabled={busy}
+                                        aria-pressed={selected === asset.id}
+                                        className={selected === asset.id ? "nexcord-native-selected" : ""}
+                                        onClick={() => void apply(asset.id)}>
+                                        <img src={asset.dataUrl} alt={asset.label} />
+                                    </button>
+                                ))}
+                                <button type="button" disabled={busy}
+                                    title={"Import " + label}
+                                    onClick={() => input.current?.click()}>
+                                    <span className="nexcord-native-none-symbol">+</span>
+                                    <small>Import</small>
+                                </button>
+                            </div>
+                            <input type="file" ref={input} hidden accept="image/png,image/jpeg,image/webp,image/gif"
+                                onChange={event => {
+                                    void importFile(event.currentTarget.files?.[0]);
+                                    event.currentTarget.value = "";
+                                }}/>
+                        </>
+                    )}
+                    {tab === "shop" && kind !== "banner" && userId && (
+                        <ShopGallery
+                            kind={kind === "effect" ? "effect" : kind as ShopKind}
+                            allowFrames={kind === "effect"}
+                            userId={userId}
+                            onApplied={() => setOpen(false)}
+                        />
+                    )}
+                    {tab === "custom" && (
+                        <p className="nexcord-native-popover-note">
+                            Local-only selections apply immediately. Discord's original
+                            Save and Apply controls are unchanged.
+                        </p>
+                    )}
                     {kind === "nameplate" && <p className="nexcord-native-popover-note">
-                        Global native nameplate display is still being developed.
+                        Native nameplate rendering is experimental. If it doesn't display,
+                        your selection will still be saved locally.
                     </p>}
                     {error && <p className="nexcord-native-popover-error" role="alert">{error}</p>}
                 </div>, document.body
