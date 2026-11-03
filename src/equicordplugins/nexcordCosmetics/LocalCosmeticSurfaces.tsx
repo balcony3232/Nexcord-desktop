@@ -39,7 +39,7 @@ function LocalNameplate({ userId, backdropOnly }: { userId: string; backdropOnly
     const custom = getSelectedAsset(userId, "nameplate");
     if (selected) return backdropOnly
         ? <NameplateBackdrop item={selected} />
-        : <NameplateArtwork item={selected} userId={userId} compact />;
+        : <NameplateArtwork item={selected} userId={userId} compact animate />;
     if (custom) return <img src={custom.dataUrl} draggable={false} alt=""
         className="nexcord-local-custom-nameplate" />;
     return null;
