@@ -35,13 +35,14 @@ let lastUserCache = new WeakMap<object, { stamp: string; value: NativeProfile }>
 // Preserve the original object's prototype and descriptors so Discord's own
 // user/profile methods continue working. Only the returned view is changed.
 function withOverrides(original: NativeProfile, overrides: NativeProfile): NativeProfile {
-    const clone = Object.create(Object.getPrototypeOf(original));
-    Object.defineProperties(clone, Object.getOwnPropertyDescriptors(original));
-    for (const key of Reflect.ownKeys(overrides)) {
-        const value = Object.getOwnPropertyDescriptor(overrides, key);
-        if (value) Object.defineProperty(clone, key, value);
-    }
-    return clone;
+    // Build descriptors on the new object in one pass. A Discord model may
+    // contain non-configurable original fields, which cannot be redefined
+    // after cloning even though the new object is safe to construct.
+    const descriptors = {
+        ...Object.getOwnPropertyDescriptors(original),
+        ...Object.getOwnPropertyDescriptors(overrides)
+    };
+    return Object.create(Object.getPrototypeOf(original), descriptors);
 }
 
 function makeNameplate(item: ShopItem) {
@@ -145,7 +146,7 @@ function localUser(user: NativeProfile | undefined): NativeProfile | undefined {
             if (prop === "nameplate" && nameplate?.asset && nameplate.palette) return makeNameplate(nameplate);
             if (prop === "avatarDecorationData" && decoration?.asset) return makeDecoration(decoration);
             if (prop === "avatarDecoration" && decoration?.asset) return null;
-            return Reflect.get(target, prop, receiver);
+            return Reflect.get(target, prop, target);
         }
     });
     lastUserCache.set(user, { stamp, value: override });
