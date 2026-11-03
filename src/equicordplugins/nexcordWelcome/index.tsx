@@ -35,20 +35,38 @@ function renameNavigation() {
         link.dataset.nexcordWelcomeLink = "true";
     }
 }
-function findContent() {
-    const nodes = document.querySelectorAll<HTMLElement>(
-        'main,[role="main"],[class*="content_"],[class*="pageWrapper"],[class*="contentRegion"]'
-    );
-    const matches: Array<{el:HTMLElement; area:number}> = [];
-    for (const el of nodes) {
-        if (el.closest("[data-nexcord-welcome-host]")) continue;
-        const r = el.getBoundingClientRect();
-        if (r.left < 180 || r.top > 175 || r.width < 425 || r.height < 355) continue;
-        if (r.right < window.innerWidth - 75 || r.bottom < window.innerHeight - 90) continue;
-        matches.push({ el, area: r.width * r.height });
+/**
+ * Locate the live Quests page, not arbitrary CSS classes. Discord has changed
+ * its centre-page containers repeatedly; matching only content_ / main left
+ * the nav label renamed but the actual Quests content still visible.
+ */
+function findContent(): HTMLElement | undefined {
+    const markers: HTMLElement[] = [];
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    let text: Node | null;
+    while ((text = walker.nextNode())) {
+        if (text.textContent?.trim() !== "All Quests") continue;
+        const el = text.parentElement;
+        if (!el || el.closest("[data-nexcord-welcome-host]")) continue;
+        const rect = el.getBoundingClientRect();
+        if (rect.left < 240 || rect.top < 0 || rect.top > 155 || rect.width <= 0) continue;
+        markers.push(el);
     }
-    matches.sort((a,b) => a.area-b.area);
-    return matches[0]?.el;
+
+    for (const heading of markers) {
+        let parent: HTMLElement | null = heading;
+        for (let depth = 0; parent && depth < 18; parent = parent.parentElement, depth++) {
+            const rect = parent.getBoundingClientRect();
+            if (rect.left < 190 || rect.left > heading.getBoundingClientRect().left) continue;
+            if (rect.width < window.innerWidth * .53 || rect.height < window.innerHeight * .70) continue;
+            if (rect.right < window.innerWidth - 65 || rect.bottom < window.innerHeight - 85) continue;
+            // Prefer the innermost quest page container. It must not include
+            // the DM navigation rail or the outer Discord application root.
+            if (parent.querySelector("[data-nexcord-welcome-host]")) continue;
+            return parent;
+        }
+    }
+    return undefined;
 }
 function unmount() {
     const old = mounted;
@@ -63,9 +81,11 @@ function unmount() {
 function scan() {
     if (!observer) return;
     renameNavigation();
-    if (window.location.pathname !== QUEST_ROUTE) { unmount(); return; }
+    // Require actual Quests content before mounting, so a Discord route
+    // redirect or a changed route name cannot overlay unrelated screens.
     const target = findContent();
-    if (!target) return;
+    if (window.location.pathname !== QUEST_ROUTE && !target) { unmount(); return; }
+    if (!target) { unmount(); return; }
     if (mounted?.parent === target && mounted.node.isConnected) return;
     unmount();
     const node = document.createElement("div");
