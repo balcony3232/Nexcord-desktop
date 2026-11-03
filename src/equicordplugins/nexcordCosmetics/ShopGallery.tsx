@@ -15,16 +15,19 @@ function EffectAssetStatus({ item, catalogLoaded, revision }: {
 }) {
     const [status, setStatus] = React.useState<"loading" | "ready" | "missing">("loading");
     const [details, setDetails] = React.useState("");
+    const [storeStatus, setStoreStatus] = React.useState("");
     const [candidates, setCandidates] = React.useState<string[]>([]);
     React.useEffect(() => {
         if (!catalogLoaded) return;
         let alive = true;
         setStatus("loading");
         setDetails("");
+        setStoreStatus("");
         void inspectEffectDefinition(item).then(result => {
             if (!alive) return;
             setStatus(result.definition ? "ready" : "missing");
             setDetails(result.reason);
+            setStoreStatus(result.storeState ?? "");
             setCandidates(result.candidates);
         }).catch(error => {
             if (!alive) return;
@@ -39,6 +42,7 @@ function EffectAssetStatus({ item, catalogLoaded, revision }: {
             {status === "loading" && "Looking up individual Discord effect animation tracks…"}
             {status === "ready" && "Animation layers resolved. The local profile-card overlay will try to render them."}
             {status === "missing" && "No animation found for this selection; it remains a saved local preview."}
+            {!!storeStatus && <div className="nexcord-shop-effect-detail">Local Discord effect store: {storeStatus}.</div>}
             {!!details && <div className="nexcord-shop-effect-detail">{details}</div>}
             {status === "missing" && !!candidates.length &&
                 <div className="nexcord-shop-effect-detail">Checked public cosmetic IDs: {candidates.join(", ")}</div>}

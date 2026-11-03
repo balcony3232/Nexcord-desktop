@@ -256,8 +256,12 @@ async function lookupEffect(item: ShopItem): Promise<EffectLookup> {
             reason: "Matched the individual effect in Discord's profile-effect definitions."
         };
     } catch (error) {
-        endpointError = "Discord's effect-definition list was unavailable (" +
-            (error instanceof Error ? error.message.slice(0, 140) : String(error).slice(0, 140)) + ").";
+        const info = error && typeof error === "object" ? error as Record<string, unknown> : {};
+        const code = typeof info.status === "number" ? info.status
+            : typeof info.statusCode === "number" ? info.statusCode
+            : typeof info.code === "number" ? info.code : undefined;
+        endpointError = "Discord's effect-definition request failed" +
+            (code ? " (HTTP/status " + code + ")" : " (no status provided)") + ".";
     }
 
     // Direct product details often contain the animation tracks even when a
