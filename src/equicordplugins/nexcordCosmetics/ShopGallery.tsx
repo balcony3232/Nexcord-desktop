@@ -10,13 +10,16 @@ import type { ShopKind } from "./ShopCatalog";
 export function ShopGallery({
     kind,
     userId,
-    onApplied
+    onApplied,
+    allowFrames = false
 }: {
     kind: ShopKind;
     userId: string;
     onApplied?: () => void;
+    allowFrames?: boolean;
 }) {
     const [search, setSearch] = React.useState("");
+    const [activeKind, setActiveKind] = React.useState<ShopKind>(kind);
     const [busy, setBusy] = React.useState(false);
     const [loaded, setLoaded] = React.useState(false);
     const [error, setError] = React.useState("");
@@ -31,11 +34,11 @@ export function ShopGallery({
         return () => { active = false; };
     }, []);
 
-    const all = cachedShopItems(kind);
+    const all = cachedShopItems(activeKind);
     const options = search.trim()
         ? all.filter(item => item.name.toLowerCase().includes(search.trim().toLowerCase()))
         : all;
-    const selected = getShopSelection(userId, kind);
+    const selected = getShopSelection(userId, activeKind);
     const shown = options.slice(0, 60);
 
     async function refreshCatalog() {
@@ -58,9 +61,10 @@ export function ShopGallery({
         setBusy(true);
         setError("");
         try {
-            await applyShopItem(userId, kind, item);
+            if (activeKind === "frame") throw new Error("Local profile frame rendering is not available yet");
+            await applyShopItem(userId, activeKind, item);
             showToast({
-                text: item ? "Local " + kind + " selected: " + item.name : "Local " + kind + " removed",
+                text: item ? "Local " + activeKind + " selected: " + item.name : "Local " + activeKind + " removed",
                 variant: "success"
             });
             onApplied?.();
@@ -77,6 +81,12 @@ export function ShopGallery({
                 <strong>Discord Shop</strong>
                 <button type="button" onClick={() => void refreshCatalog()} disabled={busy}>Refresh</button>
             </div>
+            {allowFrames && (
+                <div className="nexcord-shop-kinds">
+                    <button type="button" className={activeKind === "effect" ? "nexcord-shop-kind-active" : ""} onClick={() => setActiveKind("effect")}>Effects</button>
+                    <button type="button" className={activeKind === "frame" ? "nexcord-shop-kind-active" : ""} onClick={() => setActiveKind("frame")}>Frames (preview)</button>
+                </div>
+            )}
             <p className="nexcord-shop-gallery-info">
                 Browse currently listed Discord collectibles. Choosing one only changes
                 your local Nexcord view; it does not purchase or unlock anything.
@@ -84,8 +94,8 @@ export function ShopGallery({
             <input
                 className="nexcord-shop-gallery-search"
                 type="search"
-                aria-label={"Search Discord Shop " + kind + "s"}
-                placeholder={"Search " + kind + "s"}
+                aria-label={"Search Discord Shop " + activeKind + "s"}
+                placeholder={"Search " + activeKind + "s"}
                 value={search}
                 onChange={event => setSearch(event.currentTarget.value)}
             />
@@ -94,7 +104,7 @@ export function ShopGallery({
                 {options.length > 60 ? "Showing first 60 matches" : options.length + " shown"}
             </div>
             <div className="nexcord-shop-gallery-grid">
-                <button type="button" disabled={busy}
+                <button type="button" disabled={busy || activeKind === "frame"}
                     className={!selected ? "nexcord-shop-gallery-selected" : ""}
                     onClick={() => void select(undefined)}
                     title="Remove local Discord Shop selection">
@@ -102,7 +112,7 @@ export function ShopGallery({
                     <small>None</small>
                 </button>
                 {shown.map(item => (
-                    <button type="button" key={item.skuId} disabled={busy}
+                    <button type="button" key={item.skuId} disabled={busy || activeKind === "frame"}
                         title={item.name + " — local preview only"}
                         aria-pressed={selected?.skuId === item.skuId}
                         className={selected?.skuId === item.skuId ? "nexcord-shop-gallery-selected" : ""}
@@ -119,7 +129,7 @@ export function ShopGallery({
             {loaded && !all.length && <p className="nexcord-shop-gallery-info">No items of this type are currently available in the catalogue.</p>}
             {selected && <p className="nexcord-shop-gallery-info"><strong>Selected locally:</strong> {selected.name}</p>}
             <p className="nexcord-shop-gallery-info">Some retired, event-exclusive or unavailable items may not appear. Preview images are loaded from Discord’s CDN when viewed.</p>
-            {kind === "frame" && <p className="nexcord-shop-gallery-info">Profile frame display is not yet supported; use this section to explore the catalogue.</p>}
+            {activeKind === "frame" && <p className="nexcord-shop-gallery-info">Profile frame display is not yet supported; use this section to explore the catalogue.</p>}
         </div>
     );
 }
