@@ -6,24 +6,43 @@ import { React, showToast } from "@webpack/common";
 
 import { applyShopItem, cachedShopItems, getShopSelection, loadShopCatalog, loadShopSelections, subscribeShop } from "./ShopCatalog";
 import type { ShopItem, ShopKind } from "./ShopCatalog";
-import { getEffectDefinition } from "./EffectAssets";
+import { clearEffectLookupCache, inspectEffectDefinition } from "./EffectAssets";
 
-function EffectAssetStatus({ item }: { item: ShopItem; }) {
+function EffectAssetStatus({ item, catalogLoaded, revision }: {
+    item: ShopItem;
+    catalogLoaded: boolean;
+    revision: number;
+}) {
     const [status, setStatus] = React.useState<"loading" | "ready" | "missing">("loading");
+    const [details, setDetails] = React.useState("");
+    const [candidates, setCandidates] = React.useState<string[]>([]);
     React.useEffect(() => {
+        if (!catalogLoaded) return;
         let alive = true;
         setStatus("loading");
-        void getEffectDefinition(item).then(effect => {
-            if (alive) setStatus(effect ? "ready" : "missing");
-        }).catch(() => { if (alive) setStatus("missing"); });
+        setDetails("");
+        void inspectEffectDefinition(item).then(result => {
+            if (!alive) return;
+            setStatus(result.definition ? "ready" : "missing");
+            setDetails(result.reason);
+            setCandidates(result.candidates);
+        }).catch(error => {
+            if (!alive) return;
+            setStatus("missing");
+            setDetails(error instanceof Error ? error.message : String(error));
+        });
         return () => { alive = false; };
-    }, [item.skuId]);
+    }, [item.skuId, catalogLoaded, revision]);
+    if (!catalogLoaded) return <p className="nexcord-shop-effect-status">Loading Shop product identifiers…</p>;
     return (
-        <p className={"nexcord-shop-effect-status" + (status === "missing" ? " error" : "")}>
-            {status === "loading" && "Checking Discord's animated effect layers…"}
-            {status === "ready" && "Official animation layers found. Nexcord will attempt to draw them over your profile card locally."}
-            {status === "missing" && "This Shop entry has no accessible individual animation layers. It stays saved as a preview, but cannot animate yet."}
-        </p>
+        <div className={"nexcord-shop-effect-status" + (status === "missing" ? " error" : "")}>
+            {status === "loading" && "Looking up individual Discord effect animation tracks…"}
+            {status === "ready" && "Animation layers resolved. The local profile-card overlay will try to render them."}
+            {status === "missing" && "No animation found for this selection; it remains a saved local preview."}
+            {!!details && <div className="nexcord-shop-effect-detail">{details}</div>}
+            {status === "missing" && !!candidates.length &&
+                <div className="nexcord-shop-effect-detail">Checked public cosmetic IDs: {candidates.join(", ")}</div>}
+        </div>
     );
 }
 
@@ -42,6 +61,7 @@ export function ShopGallery({
     const [loaded, setLoaded] = React.useState(false);
     const [error, setError] = React.useState("");
     const [feedback, setFeedback] = React.useState("");
+    const [catalogRevision, setCatalogRevision] = React.useState(0);
     const [, refresh] = React.useReducer((n: number) => n + 1, 0);
 
     React.useEffect(() => subscribeShop(refresh), []);
@@ -66,6 +86,8 @@ export function ShopGallery({
         setError("");
         try {
             const results = await loadShopCatalog(true);
+            clearEffectLookupCache();
+            setCatalogRevision(value => value + 1);
             setLoaded(true);
             showToast({ text: "Loaded " + results.length + " Discord Shop items", variant: "success" });
         } catch (e) {
@@ -153,7 +175,7 @@ export function ShopGallery({
                     </button>
                 ))}
             </div>
-            {activeKind === "effect" && selected && <EffectAssetStatus item={selected} />}
+            {activeKind === "effect" && selected && <EffectAssetStatus item={selected} catalogLoaded={loaded || all.length > 0} revision={catalogRevision} />}
             {feedback && <p className="nexcord-shop-gallery-feedback" role="status">{feedback}</p>}
             {error && <p role="alert" className="nexcord-native-popover-error">{error}</p>}
             {!loaded && !all.length && !error && <p className="nexcord-shop-gallery-info">Loading items from Discord’s Shop…</p>}
