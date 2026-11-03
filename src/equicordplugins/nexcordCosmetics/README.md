@@ -37,3 +37,9 @@ This plugin adds compact **My Custom** controls beside Discord's original profil
 - If the promo card contains Display Name Style, only its sales text/button is hidden, not the functional styling controls.
 - This does **not** grant Nitro, change subscription state, purchase collectibles, or remove billing screens.
 - The plugin's unsafe profile/UserStore rendering adapter remains disabled. Shop collectibles are **saved previews**, not guaranteed live effects.
+
+## Catalogue selection feedback
+- All listed Shop entries can be selected and saved as **local previews**, even when a bundle lacks renderable animation data.
+- Clicking a tile highlights it with a checkmark, shows the chosen asset in a selected-preview card, and keeps the picker open.
+- Frames are selectable previews as well, **not** native profile frames.
+- Native Discord rendering is still disabled because the earlier profile-store hooks affected profile/Nitro presentation.

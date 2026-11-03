@@ -4,18 +4,16 @@
  */
 import { React, showToast } from "@webpack/common";
 
-import { applyShopItem, cachedShopItems, getShopSelection, loadShopCatalog, loadShopSelections, resolveRenderableItem, subscribeShop } from "./ShopCatalog";
-import type { ShopKind } from "./ShopCatalog";
+import { applyShopItem, cachedShopItems, getShopSelection, loadShopCatalog, loadShopSelections, subscribeShop } from "./ShopCatalog";
+import type { ShopItem, ShopKind } from "./ShopCatalog";
 
 export function ShopGallery({
     kind,
     userId,
-    onApplied,
     allowFrames = false
 }: {
     kind: ShopKind;
     userId: string;
-    onApplied?: () => void;
     allowFrames?: boolean;
 }) {
     const [search, setSearch] = React.useState("");
@@ -23,6 +21,7 @@ export function ShopGallery({
     const [busy, setBusy] = React.useState(false);
     const [loaded, setLoaded] = React.useState(false);
     const [error, setError] = React.useState("");
+    const [feedback, setFeedback] = React.useState("");
     const [, refresh] = React.useReducer((n: number) => n + 1, 0);
 
     React.useEffect(() => subscribeShop(refresh), []);
@@ -56,23 +55,28 @@ export function ShopGallery({
         }
     }
 
-    async function select(item?: typeof selected) {
+    async function select(item?: ShopItem) {
         if (busy) return;
         setBusy(true);
         setError("");
+        setFeedback("");
         try {
-            if (activeKind === "frame") throw new Error("Local profile frame rendering is not available yet");
-            // Resolve the individual collectible and required native render
-            // data before claiming an effect was applied successfully.
-            const resolved = item ? await resolveRenderableItem(item) : undefined;
-            await applyShopItem(userId, activeKind, resolved);
+            // The catalogue frequently contains bundles that have no
+            // individual, renderable effect animation in their details.
+            // Saving a *local preview* must not depend on resolving those
+            // assets: it is just a selection, not a Discord purchase.
+            await applyShopItem(userId, activeKind, item);
+            setFeedback(item
+                ? "Selected: " + item.name + " — saved locally for preview."
+                : "Selection cleared. No local " + activeKind + " preview.");
             showToast({
-                text: resolved
-                    ? "Local " + activeKind + " preview saved: " + resolved.name + ". Native display is paused for compatibility."
-                    : "Local " + activeKind + " preview removed",
+                text: item
+                    ? "Saved local " + activeKind + " preview: " + item.name
+                    : "Cleared local " + activeKind + " preview",
                 variant: "success"
             });
-            onApplied?.();
+            // Intentionally keep the Shop panel open: the active tile and
+            // item preview must remain visible after a click.
         } catch (e) {
             setError(e instanceof Error ? e.message : String(e));
         } finally {
@@ -108,7 +112,7 @@ export function ShopGallery({
                 {options.length > 60 ? "Showing first 60 matches" : options.length + " shown"}
             </div>
             <div className="nexcord-shop-gallery-grid">
-                <button type="button" disabled={busy || activeKind === "frame"}
+                <button type="button" disabled={busy}
                     className={!selected ? "nexcord-shop-gallery-selected" : ""}
                     onClick={() => void select(undefined)}
                     title="Remove local Discord Shop selection">
@@ -117,7 +121,7 @@ export function ShopGallery({
                 </button>
                 {shown.map(item => (
                     <button type="button" key={item.skuId} disabled={busy || activeKind === "frame"}
-                        title={item.name + " — local preview only"}
+                        title={item.name + " — select a local preview"}
                         aria-pressed={selected?.skuId === item.skuId}
                         className={selected?.skuId === item.skuId ? "nexcord-shop-gallery-selected" : ""}
                         onClick={() => void select(item)}>
@@ -125,15 +129,28 @@ export function ShopGallery({
                             ? <img loading="lazy" src={item.previewUrl} alt="" />
                             : <span className="nexcord-shop-none">✦</span>}
                         <small>{item.name}</small>
+                        {selected?.skuId === item.skuId && <span className="nexcord-shop-card-check" aria-hidden="true">✓</span>}
                     </button>
                 ))}
             </div>
+            {feedback && <p className="nexcord-shop-gallery-feedback" role="status">{feedback}</p>}
             {error && <p role="alert" className="nexcord-native-popover-error">{error}</p>}
             {!loaded && !all.length && !error && <p className="nexcord-shop-gallery-info">Loading items from Discord’s Shop…</p>}
             {loaded && !all.length && <p className="nexcord-shop-gallery-info">No items of this type are currently available in the catalogue.</p>}
-            {selected && <p className="nexcord-shop-gallery-info"><strong>Saved preview:</strong> {selected.name}. Native rendering is temporarily disabled while the profile and Nitro compatibility issue is investigated.</p>}
+            {selected && (
+                <div className="nexcord-shop-selected-preview">
+                    {selected.previewUrl
+                        ? <img src={selected.previewUrl} alt="" />
+                        : <span className="nexcord-shop-preview-placeholder">✦</span>}
+                    <div>
+                        <strong>{selected.name}</strong>
+                        <span>Selected · Saved locally</span>
+                        <small>This is a catalogue preview; native Discord cosmetic rendering is not enabled yet.</small>
+                    </div>
+                </div>
+            )}
             <p className="nexcord-shop-gallery-info">Some retired, event-exclusive or unavailable items may not appear. Preview images are loaded from Discord’s CDN when viewed.</p>
-            {activeKind === "frame" && <p className="nexcord-shop-gallery-info">Profile frame display is not yet supported; use this section to explore the catalogue.</p>}
+            {activeKind === "frame" && <p className="nexcord-shop-gallery-info">Frames can be selected for preview, but native profile-frame display is not yet implemented.</p>}
         </div>
     );
 }

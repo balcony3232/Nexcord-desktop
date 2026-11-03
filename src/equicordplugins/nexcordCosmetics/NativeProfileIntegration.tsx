@@ -427,7 +427,6 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
                             kind={kind === "effect" ? "effect" : kind as ShopKind}
                             allowFrames={kind === "effect"}
                             userId={userId}
-                            onApplied={() => setOpen(false)}
                         />
                     )}
                     {tab === "custom" && (
