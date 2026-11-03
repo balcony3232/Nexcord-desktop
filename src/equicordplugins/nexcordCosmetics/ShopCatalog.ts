@@ -23,17 +23,21 @@ export type ShopItem = {
     animatedPreviewUrl?: string;
     asset?: string;
     palette?: string;
+    /** Actual per-nameplate assets, not the parent bundle's showcase graphics. */
+    nameplateStaticUrl?: string;
+    nameplateAnimatedUrl?: string;
+    nameplateVideoUrl?: string;
     effect?: Record<string, unknown>;
     category?: string;
 };
 
 // Refresh cached entries when their individual/bundle SKU schema changes.
-const CACHE_KEY = "nexcord.collectibles-catalog.v3";
+const CACHE_KEY = "nexcord.collectibles-catalog.v4";
 const SELECT_KEY = "nexcord.collectibles-selected.v1";
 const ONE_DAY = 24 * 60 * 60 * 1000;
 const MAX_PRODUCTS = 1500;
 const MAX_SELECTIONS = 500;
-const SHOP_ASSETS = /^https:\/\/(?:cdn|media)\.discordapp\.com\//i;
+const SHOP_ASSETS = /^https:\/\/(?:cdn\.discordapp\.com|media\.discordapp\.com|media\.discordapp\.net)\//i;
 
 type CachedShop = { savedAt: number; items: ShopItem[]; };
 type Selections = Record<string, Partial<Record<ShopKind, ShopItem>>>;
@@ -87,19 +91,35 @@ function normalize(product: Record<string, any>, raw: Record<string, any>, categ
     const members = (Array.isArray(product.bundled_products) ? product.bundled_products
         : Array.isArray(product.bundledProducts) ? product.bundledProducts : []) as Record<string, any>[];
     const matchingMember = members.find(member => sku(member.sku_id) === id || sku(member.skuId) === id);
-    // Show the real effect name, not the enclosing "X Bundle" product name.
-    const name = (string(raw.title) ?? string(matchingMember?.name)
-        ?? string(raw.label) ?? string(product.name) ?? "Discord cosmetic").slice(0, 120);
     const asset = string(raw.asset);
     const palette = string(raw.palette);
+    const individualName = string(matchingMember?.name)
+        ?? (product.type !== 1000 ? string(product.name) : undefined);
+    // Nameplates commonly have a descriptive accessibility `label` rather
+    // than a product title. Never use the parent bundle's showcase name when
+    // the item has its own SKU and an identifiable name.
+    const baseName = string(product.name)?.replace(/\s+Bundle$/i, "").trim() ?? "Nameplate";
+    const variant = asset?.split("/").filter(Boolean).at(-1)?.replace(/[_-]/g, " ");
+    const specificName = variant && !baseName.toLowerCase().includes(variant.toLowerCase())
+        ? baseName + " (" + variant.replace(/\b\w/g, c => c.toUpperCase()) + ")"
+        : baseName;
+    const name = (kind === "nameplate"
+        ? (individualName ?? string(raw.title) ?? specificName)
+        : (string(raw.title) ?? individualName ?? string(raw.label) ?? string(product.name) ?? "Discord cosmetic")
+    ).slice(0, 120);
     // A native nameplate needs the asset and palette, not just a picture.
     if (kind === "nameplate" && (!asset || !palette)) return;
     if (kind === "decoration" && !asset) return;
-    const previewUrl = previewFor(raw, matchingMember ?? product) ?? previewFor(raw, product);
+    const itemAssets = record(raw.assets) ?? {};
+    const itemStatic = safeImage(itemAssets.static_image_url) ?? safeImage(itemAssets.staticImageUrl);
+    const itemAnimated = safeImage(itemAssets.animated_image_url) ?? safeImage(itemAssets.animatedImageUrl);
+    const itemVideo = safeImage(itemAssets.video_url) ?? safeImage(itemAssets.videoUrl);
+    const previewUrl = kind === "nameplate"
+        ? itemStatic ?? itemAnimated ?? previewFor(raw, matchingMember ?? product) ?? previewFor(raw, product)
+        : previewFor(raw, matchingMember ?? product) ?? previewFor(raw, product);
     const previewAssets = record((matchingMember ?? product).preview_assets)
         ?? record((matchingMember ?? product).previewAssets)
         ?? record(product.preview_assets) ?? record(product.previewAssets) ?? {};
-    const itemAssets = record(raw.assets) ?? {};
     const animatedPreviewUrl = safeImage(previewAssets.fg_animated)
         ?? safeImage(previewAssets.fgAnimated)
         ?? safeImage(itemAssets.animated_image_url);
@@ -127,7 +147,11 @@ function normalize(product: Record<string, any>, raw: Record<string, any>, categ
         productSkuId: sku(product.sku_id) ?? sku(product.skuId),
         itemId: sku(raw.id),
         kind, name, previewUrl, animatedPreviewUrl, asset: asset?.slice(0, 500),
-        palette: palette?.slice(0, 40), effect, category
+        palette: palette?.slice(0, 40),
+        nameplateStaticUrl: kind === "nameplate" ? itemStatic : undefined,
+        nameplateAnimatedUrl: kind === "nameplate" ? itemAnimated : undefined,
+        nameplateVideoUrl: kind === "nameplate" ? itemVideo : undefined,
+        effect, category
     };
 }
 
@@ -261,6 +285,9 @@ function validItem(value: unknown): value is ShopItem {
         && typeof v.name === "string" && v.name.length <= 120
         && (!v.previewUrl || !!safeImage(v.previewUrl))
         && (!v.animatedPreviewUrl || !!safeImage(v.animatedPreviewUrl))
+        && (!v.nameplateStaticUrl || !!safeImage(v.nameplateStaticUrl))
+        && (!v.nameplateAnimatedUrl || !!safeImage(v.nameplateAnimatedUrl))
+        && (!v.nameplateVideoUrl || !!safeImage(v.nameplateVideoUrl))
         && (!v.asset || typeof v.asset === "string" && v.asset.length < 501);
 }
 
