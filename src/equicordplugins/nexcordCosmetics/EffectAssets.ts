@@ -6,6 +6,7 @@
  * on demand. Does not modify entitlements or user/profile stores.
  */
 import { RestAPI } from "@webpack/common";
+import { findStore } from "@webpack";
 
 import { cachedShopItems } from "./ShopCatalog";
 import type { ShopItem } from "./ShopCatalog";
@@ -133,6 +134,8 @@ export interface EffectLookup {
     /** Read-only collectible SKU and effect ID candidates, not user data. */
     candidates: string[];
     reason: string;
+    /** Whether Discord's locally loaded effect store was checked. */
+    storeState?: string;
 }
 
 const lookupPromises = new Map<string, Promise<EffectLookup>>();
@@ -154,6 +157,73 @@ function findMatch(definitions: Map<string, EffectDefinition>, ids: string[], na
     return matches.length === 1 ? matches[0] : undefined;
 }
 
+/**
+ * Read Discord's existing ProfileEffectStore. This is the same local store
+ * used by Discord's own profile-effect UI. We do not patch its methods,
+ * data, purchase checks or user/profile stores.
+ *
+ * Store shape varies by client version, so check both its accessor and
+ * indexed configuration map. Errors are caught and summarised without
+ * dumping personal account/profile information.
+ */
+function lookupLoadedProfileEffects(ids: string[], name: string): {
+    definition?: EffectDefinition;
+    state: string;
+    count: number;
+} {
+    let store: any;
+    try {
+        store = findStore("ProfileEffectStore");
+    } catch {
+        return { state: "Discord ProfileEffectStore not loaded", count: 0 };
+    }
+    if (!store) return { state: "Discord ProfileEffectStore not available", count: 0 };
+
+    const configs = new Map<string, EffectDefinition>();
+    const raw = store.profileEffects;
+    if (raw && typeof raw === "object") {
+        let entries: unknown[] = [];
+        if (raw instanceof Map) entries = [...raw.values()];
+        else if (Array.isArray(raw)) entries = raw;
+        else entries = Object.values(raw);
+        for (const value of entries.slice(0, MAX_DEFINITIONS)) {
+            const def = parseDefinition(value);
+            if (!def) continue;
+            configs.set(def.skuId, def);
+            if (def.itemId) configs.set(def.itemId, def);
+        }
+    }
+
+    const accessor = store.getProfileEffectById;
+    if (typeof accessor === "function") {
+        for (const candidate of ids) {
+            try {
+                const result = parseDefinition(accessor.call(store, candidate));
+                if (result) return {
+                    definition: result,
+                    count: new Set(configs.values()).size,
+                    state: "Resolved via Discord ProfileEffectStore.getProfileEffectById"
+                };
+            } catch { /* Try dictionary data and remaining candidates. */ }
+        }
+    }
+
+    const match = findMatch(configs, ids, name);
+    if (match) return {
+        definition: match,
+        count: new Set(configs.values()).size,
+        state: "Resolved via loaded Discord ProfileEffectStore configurations"
+    };
+
+    const total = new Set(configs.values()).size;
+    return {
+        count: total,
+        state: total
+            ? "ProfileEffectStore has " + total + " renderable effects, but this cosmetic wasn't found"
+            : "ProfileEffectStore loaded without renderable effect configurations"
+    };
+}
+
 async function lookupEffect(item: ShopItem): Promise<EffectLookup> {
     const live = cachedShopItems("effect").find(effect => effect.skuId === item.skuId);
     const candidates = [...new Set([
@@ -164,6 +234,17 @@ async function lookupEffect(item: ShopItem): Promise<EffectLookup> {
     const inline = item.effect ? parseDefinition({ ...item.effect, skuId: item.skuId }) : undefined;
     if (inline) return { definition: inline, availableConfigs: 1, candidates, reason: "Animation tracks included in the selected Shop item." };
 
+    // Prefer the cache Discord itself uses. This avoids relying solely on a
+    // private REST endpoint which may be unavailable in current releases.
+    const local = lookupLoadedProfileEffects(candidates, live?.name ?? item.name);
+    if (local.definition) return {
+        definition: local.definition,
+        availableConfigs: local.count,
+        candidates,
+        storeState: local.state,
+        reason: "Animation loaded from Discord's own ProfileEffectStore."
+    };
+
     let availableConfigs = 0;
     let endpointError = "";
     try {
@@ -171,7 +252,7 @@ async function lookupEffect(item: ShopItem): Promise<EffectLookup> {
         availableConfigs = new Set(known.values()).size;
         const found = findMatch(known, candidates, live?.name ?? item.name);
         if (found) return {
-            definition: found, availableConfigs, candidates,
+            definition: found, availableConfigs, candidates, storeState: local.state,
             reason: "Matched the individual effect in Discord's profile-effect definitions."
         };
     } catch (error) {
@@ -194,7 +275,7 @@ async function lookupEffect(item: ShopItem): Promise<EffectLookup> {
                 ?? (new Set(definitions.values()).size === 1
                     ? [...definitions.values()][0] : undefined);
             if (found) return {
-                definition: found, availableConfigs, candidates,
+                definition: found, availableConfigs, candidates, storeState: local.state,
                 reason: "Found the effect in its individual Shop product details."
             };
         } catch {
@@ -204,7 +285,7 @@ async function lookupEffect(item: ShopItem): Promise<EffectLookup> {
     }
 
     return {
-        availableConfigs, candidates,
+        availableConfigs, candidates, storeState: local.state,
         reason: endpointError
             ? endpointError + " Shop product details checked: " + productsChecked + "."
             : availableConfigs === 0
