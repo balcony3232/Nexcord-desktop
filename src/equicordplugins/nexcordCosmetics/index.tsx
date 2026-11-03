@@ -11,6 +11,8 @@ import { Menu, openModal, UserStore } from "@webpack/common";
 import { LocalCosmeticsModal } from "./LocalCosmeticsModal";
 import { getLocalBanner, loadCosmetics } from "./storage";
 import { startNativeProfileIntegration, stopNativeProfileIntegration } from "./NativeProfileIntegration";
+import { startShopDisplay, stopShopDisplay } from "./ShopDisplay";
+import { loadShopSelections } from "./ShopCatalog";
 
 const logger = new Logger("NexcordCosmetics");
 
@@ -20,7 +22,7 @@ function openEditor(userId: string, kind: "banner" | "nameplate" = "banner") {
 
 export default definePlugin({
     name: "NexcordCosmetics",
-    description: "Add My Custom galleries inside Discord’s real profile editor and nameplate picker",
+    description: "Browse local images and Discord Shop collectibles in the real profile editor (local-only)",
     authors: [{ name: "Nexcord", id: 0n }],
     tags: ["Appearance", "Customisation"],
     enabledByDefault: true,
@@ -64,10 +66,13 @@ export default definePlugin({
         return getLocalBanner(displayProfile?.userId);
     },
     start() {
+        startShopDisplay();
         startNativeProfileIntegration();
+        void loadShopSelections().catch(error => logger.error("Failed loading local shop selections", error));
         void loadCosmetics().catch(error => logger.error("Failed loading Nexcord cosmetics", error));
     },
     stop() {
         stopNativeProfileIntegration();
+        stopShopDisplay();
     }
 });
