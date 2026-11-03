@@ -29,8 +29,11 @@ export interface EffectDefinition {
     layers: EffectLayer[];
     reducedMotionSrc?: string;
     staticFrameSrc?: string;
+    /** Animated Shop composite, not an official full-screen animation layer. */
+    previewAnimatedSrc?: string;
 }
 const CDN = /^https:\/\/(?:cdn\.discordapp\.com|media\.discordapp\.net)\/assets\/profile_effects\//;
+const PREVIEW_CDN = /^https:\/\/(?:cdn\.discordapp\.com|media\.discordapp\.com|media\.discordapp\.net)\/assets\//;
 const MAX_LAYERS = 16;
 const MAX_DEFINITIONS = 1500;
 let definitionsPromise: Promise<Map<string, EffectDefinition>> | undefined;
@@ -73,18 +76,25 @@ function parseDefinition(input: unknown): EffectDefinition | undefined {
     if (!e) return;
     const skuId = id(e.skuId) ?? id(e.sku_id);
     const itemId = id(e.id);
-    if ((!skuId && !itemId) || !Array.isArray(e.effects)) return;
-    const layers = e.effects.slice(0, MAX_LAYERS).map(parseLayer).filter((layer): layer is EffectLayer => !!layer);
+    if (!skuId && !itemId) return;
+    // Newer Shop responses often omit the `effects` array while retaining
+    // reduced-motion/static APNG. This should not invalidate a usable preview.
+    const layers = (Array.isArray(e.effects) ? e.effects : []).slice(0, MAX_LAYERS)
+        .map(parseLayer).filter((layer): layer is EffectLayer => !!layer);
     const reducedMotionSrc = cdn(e.reducedMotionSrc) ?? cdn(e.reduced_motion_src);
     const staticFrameSrc = cdn(e.staticFrameSrc) ?? cdn(e.static_frame_src);
-    if (!layers.length && !reducedMotionSrc && !staticFrameSrc) return;
+    const previewAnimatedSrc = typeof e.previewAnimatedSrc === "string"
+        && PREVIEW_CDN.test(e.previewAnimatedSrc) && e.previewAnimatedSrc.length < 1024
+            ? e.previewAnimatedSrc : undefined;
+    if (!layers.length && !reducedMotionSrc && !staticFrameSrc && !previewAnimatedSrc) return;
     return {
         skuId: skuId ?? itemId!,
         itemId,
         name: typeof e.title === "string" ? e.title.slice(0, 120) : "Profile Effect",
         layers,
         reducedMotionSrc,
-        staticFrameSrc
+        staticFrameSrc,
+        previewAnimatedSrc
     };
 }
 function parseResponse(body: unknown): Map<string, EffectDefinition> {
@@ -231,8 +241,25 @@ async function lookupEffect(item: ShopItem): Promise<EffectLookup> {
         live?.skuId, live?.itemId, live?.productSkuId
     ].filter((value): value is string => !!value && /^\d{15,22}$/.test(value)))];
 
-    const inline = item.effect ? parseDefinition({ ...item.effect, skuId: item.skuId }) : undefined;
-    if (inline) return { definition: inline, availableConfigs: 1, candidates, reason: "Animation tracks included in the selected Shop item." };
+    const inline = item.effect ? parseDefinition({
+        ...item.effect,
+        previewAnimatedSrc: item.animatedPreviewUrl ?? item.effect.previewAnimatedSrc,
+        skuId: item.skuId
+    }) : undefined;
+    const liveInline = live?.effect ? parseDefinition({
+        ...live.effect,
+        previewAnimatedSrc: live.animatedPreviewUrl ?? live.effect.previewAnimatedSrc,
+        skuId: live.skuId
+    }) : undefined;
+    const candidateFallback = inline?.layers.length ? inline
+        : liveInline?.layers.length ? liveInline : undefined;
+    if (candidateFallback) return {
+        definition: candidateFallback, availableConfigs: 1, candidates,
+        reason: "Full effect animation layers provided in the Shop listing."
+    };
+    // A reduced-motion image or composite Shop animation is better than an
+    // empty profile, but do not describe it as the actual multi-layer effect.
+    const visualFallback = liveInline ?? inline;
 
     // Prefer the cache Discord itself uses. This avoids relying solely on a
     // private REST endpoint which may be unavailable in current releases.
@@ -287,6 +314,14 @@ async function lookupEffect(item: ShopItem): Promise<EffectLookup> {
             // bundle's product SKU as well instead of treating that as fatal.
         }
     }
+
+    if (visualFallback) return {
+        definition: visualFallback,
+        availableConfigs, candidates, storeState: local.state,
+        reason: visualFallback.reducedMotionSrc || visualFallback.staticFrameSrc
+            ? "Full effect layers unavailable; using Discord's reduced-motion/static profile asset."
+            : "Full effect layers unavailable; using an animated Shop-preview composite instead."
+    };
 
     return {
         availableConfigs, candidates, storeState: local.state,

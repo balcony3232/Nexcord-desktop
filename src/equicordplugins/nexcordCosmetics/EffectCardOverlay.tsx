@@ -119,8 +119,13 @@ function EffectOverlay({ userId, card }: { userId: string; card: HTMLElement; })
                 ? <img className="nexcord-effect-reduced" src={effect.staticFrameSrc ?? effect.reducedMotionSrc} alt="" />
                 : effect.layers.length
                     ? effect.layers.map((frame, index) => <LayerImage key={frame.src + index} frame={frame} scale={scale} />)
-                    : effect.staticFrameSrc
-                        ? <img className="nexcord-effect-reduced" src={effect.staticFrameSrc} alt="" />
+                    : effect.reducedMotionSrc || effect.staticFrameSrc || effect.previewAnimatedSrc
+                        ? <img
+                            className="nexcord-effect-reduced"
+                            src={effect.reducedMotionSrc ?? effect.staticFrameSrc ?? effect.previewAnimatedSrc}
+                            alt=""
+                            onError={() => logger.warn("Discord effect fallback image could not load")}
+                        />
                         : null}
         </div>
     );

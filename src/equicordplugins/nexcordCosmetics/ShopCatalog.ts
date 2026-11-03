@@ -19,6 +19,8 @@ export type ShopItem = {
     kind: ShopKind;
     name: string;
     previewUrl?: string;
+    /** Animated foreground supplied by the Shop, not necessarily native effect tracks. */
+    animatedPreviewUrl?: string;
     asset?: string;
     palette?: string;
     effect?: Record<string, unknown>;
@@ -26,7 +28,7 @@ export type ShopItem = {
 };
 
 // Refresh cached entries when their individual/bundle SKU schema changes.
-const CACHE_KEY = "nexcord.collectibles-catalog.v2";
+const CACHE_KEY = "nexcord.collectibles-catalog.v3";
 const SELECT_KEY = "nexcord.collectibles-selected.v1";
 const ONE_DAY = 24 * 60 * 60 * 1000;
 const MAX_PRODUCTS = 1500;
@@ -94,6 +96,13 @@ function normalize(product: Record<string, any>, raw: Record<string, any>, categ
     if (kind === "nameplate" && (!asset || !palette)) return;
     if (kind === "decoration" && !asset) return;
     const previewUrl = previewFor(raw, matchingMember ?? product) ?? previewFor(raw, product);
+    const previewAssets = record((matchingMember ?? product).preview_assets)
+        ?? record((matchingMember ?? product).previewAssets)
+        ?? record(product.preview_assets) ?? record(product.previewAssets) ?? {};
+    const itemAssets = record(raw.assets) ?? {};
+    const animatedPreviewUrl = safeImage(previewAssets.fg_animated)
+        ?? safeImage(previewAssets.fgAnimated)
+        ?? safeImage(itemAssets.animated_image_url);
     let effect: Record<string, unknown> | undefined;
     if (kind === "effect") {
         effect = {
@@ -103,6 +112,9 @@ function normalize(product: Record<string, any>, raw: Record<string, any>, categ
             accessibilityLabel: string(raw.accessibilityLabel) ?? string(raw.accessibility_label) ?? name,
             thumbnailPreviewSrc: safeImage(raw.thumbnailPreviewSrc) ?? safeImage(raw.thumbnail_preview_src),
             reducedMotionSrc: safeImage(raw.reducedMotionSrc) ?? safeImage(raw.reduced_motion_src),
+            // Some current Shop entries offer an animated *preview* but no
+            // full effect layer list. Use it only as a clearly labeled visual fallback.
+            previewAnimatedSrc: animatedPreviewUrl,
             staticFrameSrc: safeImage(raw.staticFrameSrc) ?? safeImage(raw.static_frame_src),
             animationType: typeof raw.animationType === "number" ? raw.animationType
                 : typeof raw.animation_type === "number" ? raw.animation_type : undefined,
@@ -114,7 +126,7 @@ function normalize(product: Record<string, any>, raw: Record<string, any>, categ
         skuId: id,
         productSkuId: sku(product.sku_id) ?? sku(product.skuId),
         itemId: sku(raw.id),
-        kind, name, previewUrl, asset: asset?.slice(0, 500),
+        kind, name, previewUrl, animatedPreviewUrl, asset: asset?.slice(0, 500),
         palette: palette?.slice(0, 40), effect, category
     };
 }
@@ -248,6 +260,7 @@ function validItem(value: unknown): value is ShopItem {
         && ["nameplate", "decoration", "effect", "frame"].includes(v.kind)
         && typeof v.name === "string" && v.name.length <= 120
         && (!v.previewUrl || !!safeImage(v.previewUrl))
+        && (!v.animatedPreviewUrl || !!safeImage(v.animatedPreviewUrl))
         && (!v.asset || typeof v.asset === "string" && v.asset.length < 501);
 }
 
