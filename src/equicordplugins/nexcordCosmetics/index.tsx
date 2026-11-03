@@ -15,8 +15,8 @@ import { getLocalBanner, getSelectedAsset, loadCosmetics, subscribe } from "./st
 const logger = new Logger("NexcordCosmetics");
 const SECTION_ID = "nexcord-local-cosmetics";
 
-function openEditor(userId: string) {
-    openModal(modalProps => <LocalCosmeticsModal userId={userId} modalProps={modalProps} />);
+function openEditor(userId: string, kind: "banner" | "nameplate" = "banner") {
+    openModal(modalProps => <LocalCosmeticsModal userId={userId} initialKind={kind} modalProps={modalProps} />);
 }
 
 function ProfileSection({ userId }: { userId: string; isSideBar: boolean; }) {
@@ -28,12 +28,21 @@ function ProfileSection({ userId }: { userId: string; isSideBar: boolean; }) {
     return (
         <section className="nexcord-profile-section">
             <div className="nexcord-profile-section-title">
-                <span>Nexcord Local Appearance</span>
+                <span>Local Appearance</span>
                 <span className="nexcord-local-tag">Only you</span>
             </div>
-            {nameplate && <img className="nexcord-profile-nameplate" src={nameplate.dataUrl} alt="Local nameplate preview" />}
-            <p>{banner ? "Custom banner" : "Default banner"} · {nameplate ? "Custom nameplate" : "Default nameplate"}</p>
-            <button type="button" className="nexcord-profile-open" onClick={() => openEditor(userId)}>Edit local cosmetics</button>
+            <div className="nexcord-profile-section-actions">
+                <button
+                    type="button"
+                    className="nexcord-profile-open"
+                    onClick={() => openEditor(userId, "banner")}
+                >{banner ? "Change Banner" : "Choose Banner"}</button>
+                <button
+                    type="button"
+                    className="nexcord-profile-open"
+                    onClick={() => openEditor(userId, "nameplate")}
+                >{nameplate ? "Change Nameplate" : "Choose Nameplate"}</button>
+            </div>
         </section>
     );
 }
@@ -61,10 +70,16 @@ export default definePlugin({
             children.push(
                 <Menu.MenuSeparator />,
                 <Menu.MenuItem
-                    id="nexcord-edit-local-cosmetics"
-                    label="Edit Local Cosmetics"
+                    id="nexcord-local-banner"
+                    label="Change Local Banner"
                     icon={PencilIcon}
-                    action={() => openEditor(user.id)}
+                    action={() => openEditor(user.id, "banner")}
+                />,
+                <Menu.MenuItem
+                    id="nexcord-local-nameplate"
+                    label="Change Local Nameplate"
+                    icon={PencilIcon}
+                    action={() => openEditor(user.id, "nameplate")}
                 />
             );
         }

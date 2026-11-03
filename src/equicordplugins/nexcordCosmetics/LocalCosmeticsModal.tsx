@@ -1,57 +1,69 @@
 /*
- * Nexcord local cosmetic picker. SPDX-License-Identifier: GPL-3.0-or-later
+ * Nexcord local-only cosmetic gallery.
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
-import { Button } from "@components/Button";
 import type { RenderModalProps } from "@vencord/discord-types";
-import { Modal, React, showToast, UserStore } from "@webpack/common";
+import { IconUtils, Modal, React, showToast, UserProfileStore, UserStore } from "@webpack/common";
 
 import { applyAsset, getAppearance, getSelectedAsset, importAsset, listAssets, loadCosmetics, subscribe } from "./storage";
 import type { CosmeticKind } from "./storage";
 
-const TABS: CosmeticKind[] = ["banner", "nameplate"];
-
-export function LocalCosmeticsModal({ userId, modalProps }: { userId: string; modalProps: RenderModalProps; }) {
+export function LocalCosmeticsModal({
+    userId,
+    modalProps,
+    initialKind = "banner"
+}: {
+    userId: string;
+    modalProps: RenderModalProps;
+    initialKind?: CosmeticKind;
+}) {
     const user = UserStore.getUser(userId);
     const displayName = user?.globalName || user?.username || userId;
-    const [kind, setKind] = React.useState<CosmeticKind>("banner");
-    const [pending, setPending] = React.useState<Record<CosmeticKind, string | undefined>>({
-        banner: getAppearance(userId).banner,
-        nameplate: getAppearance(userId).nameplate
-    });
+    const avatarUrl = user ? IconUtils.getUserAvatarURL(user, true, 128) : undefined;
+    const profileBanner = UserProfileStore.getUserProfile(userId)?.banner;
+    const discordBannerUrl = profileBanner
+        ? "https://cdn.discordapp.com/banners/" + userId + "/" + profileBanner + "." + (profileBanner.startsWith("a_") ? "gif" : "png") + "?size=1024"
+        : undefined;
+
+    const [kind, setKind] = React.useState<CosmeticKind>(initialKind);
+    const [pending, setPending] = React.useState(getAppearance(userId));
     const [busy, setBusy] = React.useState(false);
     const [error, setError] = React.useState("");
-    const [revision, forceUpdate] = React.useReducer(n => n + 1, 0);
+    const [, refresh] = React.useReducer(n => n + 1, 0);
     const fileInput = React.useRef<HTMLInputElement>(null);
 
-    React.useEffect(() => subscribe(forceUpdate), []);
+    React.useEffect(() => subscribe(refresh), []);
     React.useEffect(() => {
         void loadCosmetics().then(() => {
-            const saved = getAppearance(userId);
-            setPending({ banner: saved.banner, nameplate: saved.nameplate });
-        }).catch(err => setError(String(err)));
+            setPending({ ...getAppearance(userId) });
+        }).catch(e => setError(String(e)));
     }, [userId]);
 
-    void revision; // redraw after IndexedDB state changes
+    const isBanner = kind === "banner";
     const choices = listAssets(kind);
-    const preview = choices.find(asset => asset.id === pending[kind]);
-    const current = getSelectedAsset(userId, kind);
+    const selected = choices.find(asset => asset.id === pending[kind]);
+    const saved = getSelectedAsset(userId, kind);
+    const title = isBanner ? "Change Profile Banner" : "Change Nameplate";
+    const visibleBanner = isBanner ? selected?.dataUrl ?? (pending.banner ? undefined : discordBannerUrl) : discordBannerUrl;
+    const styleBanner = visibleBanner ? { backgroundImage: "url(" + JSON.stringify(visibleBanner) + ")" } : undefined;
 
-    async function importFile(file: File | undefined) {
+    async function onImport(file?: File) {
         if (!file) return;
         setBusy(true);
         setError("");
         try {
-            const asset = await importAsset(kind, file);
-            setPending(old => ({ ...old, [kind]: asset.id }));
-            showToast({ text: "Saved to Nexcord's local cosmetic library", variant: "success" });
-        } catch (err) {
-            setError(err instanceof Error ? err.message : String(err));
+            const item = await importAsset(kind, file);
+            setPending(old => ({ ...old, [kind]: item.id }));
+            showToast({ text: "Added to My Custom " + (isBanner ? "Banners" : "Nameplates"), variant: "success" });
+        } catch (e) {
+            setError(e instanceof Error ? e.message : String(e));
         } finally {
             setBusy(false);
         }
     }
 
-    async function save() {
+    async function onApply() {
+        if (busy) return;
         setBusy(true);
         setError("");
         try {
@@ -59,8 +71,8 @@ export function LocalCosmeticsModal({ userId, modalProps }: { userId: string; mo
             await applyAsset(userId, "nameplate", pending.nameplate);
             showToast({ text: "Local appearance saved — only you can see it", variant: "success" });
             modalProps.onClose();
-        } catch (err) {
-            setError(err instanceof Error ? err.message : String(err));
+        } catch (e) {
+            setError(e instanceof Error ? e.message : String(e));
         } finally {
             setBusy(false);
         }
@@ -70,99 +82,111 @@ export function LocalCosmeticsModal({ userId, modalProps }: { userId: string; mo
         <Modal
             {...modalProps}
             size="lg"
-            title="Nexcord Local Cosmetics"
+            title={title}
             actions={[
                 { text: "Cancel", variant: "secondary", onClick: () => modalProps.onClose() },
-                { text: "Apply Locally", variant: "primary", onClick: save }
+                { text: "Apply", variant: "primary", onClick: onApply, disabled: busy }
             ]}
         >
-            <div className="nexcord-cosmetic-modal">
-                <p className="nexcord-local-info">
-                    Editing <strong>{displayName}</strong> · Local only. Nothing is uploaded to Discord or visible to other people.
-                </p>
-                <div className="nexcord-cosmetic-tabs">
-                    {TABS.map(tab => (
-                        <Button
-                            key={tab}
-                            size="small"
-                            variant={tab === kind ? "primary" : "secondary"}
-                            onClick={() => setKind(tab)}
-                        >
-                            {tab === "banner" ? "Banners" : "Nameplates"}
-                        </Button>
-                    ))}
+            <div className="nexcord-picker">
+                <div className="nexcord-picker-topline">
+                    <span className="nexcord-picker-local-pill">Only visible to you</span>
+                    <span>Customise how <strong>{displayName}</strong> appears in Nexcord</span>
                 </div>
-                <div className="nexcord-cosmetic-columns">
-                    <div className="nexcord-cosmetic-library">
-                        <h3>My Custom {kind === "banner" ? "Banners" : "Nameplates"}</h3>
-                        <div className="nexcord-cosmetic-grid">
+                <div className="nexcord-picker-body">
+                    <div className="nexcord-picker-options">
+                        <h3>Your {isBanner ? "Banners" : "Nameplates"}</h3>
+                        <div className="nexcord-picker-choice-row">
                             <button
                                 type="button"
-                                className={"nexcord-cosmetic-tile nexcord-empty" + (!pending[kind] ? " nexcord-selected" : "")}
+                                className={"nexcord-picker-none" + (!pending[kind] ? " nexcord-picker-selected" : "")}
+                                aria-pressed={!pending[kind]}
                                 onClick={() => setPending(old => ({ ...old, [kind]: undefined }))}
                             >
-                                <span className="nexcord-no-item">⊘</span> None
+                                <span className="nexcord-picker-none-symbol">⊘</span>
+                                <span>None</span>
                             </button>
-                            {choices.map(asset => (
-                                <button
-                                    key={asset.id}
-                                    type="button"
-                                    title={asset.label}
-                                    className={"nexcord-cosmetic-tile" + (pending[kind] === asset.id ? " nexcord-selected" : "")}
-                                    onClick={() => setPending(old => ({ ...old, [kind]: asset.id }))}
-                                >
-                                    <img src={asset.dataUrl} alt={asset.label} />
-                                    <span>{asset.label}</span>
-                                </button>
-                            ))}
+                            <button
+                                type="button"
+                                className="nexcord-picker-upload"
+                                onClick={() => fileInput.current?.click()}
+                                disabled={busy}
+                            >
+                                <span className="nexcord-picker-upload-symbol">+</span>
+                                <span>Import</span>
+                            </button>
                         </div>
+                        <h3>My Custom</h3>
+                        {choices.length ? (
+                            <div className={"nexcord-picker-grid" + (!isBanner ? " nexcord-picker-grid-wide" : "")}>
+                                {choices.map(asset => (
+                                    <button
+                                        key={asset.id}
+                                        type="button"
+                                        aria-pressed={pending[kind] === asset.id}
+                                        title={asset.label}
+                                        className={"nexcord-picker-asset" + (pending[kind] === asset.id ? " nexcord-picker-selected" : "")}
+                                        onClick={() => setPending(old => ({ ...old, [kind]: asset.id }))}
+                                    >
+                                        <img alt={asset.label} src={asset.dataUrl} />
+                                        <span>{asset.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="nexcord-picker-empty">Your imported {isBanner ? "banners" : "nameplates"} will appear here.</p>
+                        )}
                         <input
                             ref={fileInput}
-                            hidden
                             type="file"
+                            hidden
                             accept="image/png,image/jpeg,image/webp,image/gif"
-                            onChange={e => {
-                                void importFile(e.currentTarget.files?.[0]);
-                                e.currentTarget.value = "";
+                            onChange={event => {
+                                void onImport(event.currentTarget.files?.[0]);
+                                event.currentTarget.value = "";
                             }}
                         />
-                        <Button size="small" variant="secondary" disabled={busy} onClick={() => fileInput.current?.click()}>
-                            + Import Image / GIF
-                        </Button>
-                        <p className="nexcord-cosmetic-help">PNG, JPG, WebP or GIF · Up to 2 MB each · Stored on your computer</p>
+                        <p className="nexcord-picker-hint">PNG, JPG, WebP or GIF · Maximum 2 MB per image · Stored locally</p>
                     </div>
-                    <div className="nexcord-cosmetic-preview-panel">
-                        <h3>Live preview</h3>
-                        <div className="nexcord-cosmetic-profile-card">
-                            {kind === "banner" && (
-                                <div
-                                    className="nexcord-cosmetic-banner"
-                                    style={preview ? { backgroundImage: "url(" + JSON.stringify(preview.dataUrl) + ")" } : undefined}
-                                />
-                            )}
-                            <div className="nexcord-cosmetic-profile-content">
-                                <div className="nexcord-cosmetic-avatar">{displayName[0]?.toUpperCase() || "?"}</div>
-                                {kind === "nameplate" && preview && (
-                                    <img className="nexcord-cosmetic-nameplate" src={preview.dataUrl} alt="Nameplate preview" />
-                                )}
-                                <strong>{displayName}</strong>
-                                <small>Local Nexcord appearance</small>
-                            </div>
+                    <div className="nexcord-picker-preview">
+                        <div className="nexcord-picker-preview-header">
+                            <h3>{isBanner ? "Profile Preview" : "Nameplate Preview"}</h3>
+                            <span>Only you</span>
                         </div>
-                        <p className="nexcord-cosmetic-selection">
-                            {preview ? preview.label : "No local " + kind + " selected"}
-                        </p>
-                        {current && <p className="nexcord-cosmetic-help">Currently saved: {current.label}</p>}
-                        {kind === "nameplate" && (
-                            <p className="nexcord-cosmetic-help">
-                                Nameplates are currently saved and previewed locally.
-                                Rendering in Discord's native nameplate slots comes later.
-                            </p>
+                        {isBanner ? (
+                            <div className="nexcord-picker-profile-card">
+                                <div className="nexcord-picker-banner" style={styleBanner} />
+                                <div className="nexcord-picker-profile-content">
+                                    {avatarUrl
+                                        ? <img className="nexcord-picker-avatar" alt="" src={avatarUrl} />
+                                        : <span className="nexcord-picker-avatar nexcord-picker-placeholder">{displayName[0]?.toUpperCase() ?? "?"}</span>}
+                                    <strong className="nexcord-picker-display-name">{displayName}</strong>
+                                    <span className="nexcord-picker-username">{user?.username ?? displayName}</span>
+                                    <div className="nexcord-picker-profile-button">Message</div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="nexcord-picker-nameplate-example">
+                                <div className="nexcord-picker-skeleton-row"><span /><span /></div>
+                                <div className="nexcord-picker-nameplate-stage" style={selected ? { backgroundImage: "url(" + JSON.stringify(selected.dataUrl) + ")" } : undefined}>
+                                    {avatarUrl
+                                        ? <img className="nexcord-picker-mini-avatar" alt="" src={avatarUrl} />
+                                        : <span className="nexcord-picker-mini-avatar nexcord-picker-placeholder">{displayName[0]?.toUpperCase() ?? "?"}</span>}
+                                    <span className="nexcord-picker-nameplate-name">{displayName}</span>
+                                </div>
+                                <div className="nexcord-picker-skeleton-row"><span /><span /></div>
+                            </div>
                         )}
+                        <div className="nexcord-picker-selection-detail">
+                            <strong>{selected?.label ?? (isBanner ? "Default banner" : "No local nameplate")}</strong>
+                            <span>{selected ? "My Custom · Stored locally" : "Discord original"}</span>
+                        </div>
+                        {saved && <p className="nexcord-picker-hint">Currently applied: {saved.label}</p>}
+                        {!isBanner && <p className="nexcord-picker-hint">Custom nameplates can be previewed and saved. Showing them in Discord's built-in nameplate slot is still in development.</p>}
                     </div>
                 </div>
-                {error && <p className="nexcord-cosmetic-error" role="alert">{error}</p>}
-                {busy && <p className="nexcord-cosmetic-help">Saving local changes...</p>}
+                {error && <p className="nexcord-picker-error" role="alert">{error}</p>}
+                {busy && <p className="nexcord-picker-hint">Saving…</p>}
             </div>
         </Modal>
     );

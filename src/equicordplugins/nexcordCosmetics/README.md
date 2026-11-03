@@ -1,12 +1,7 @@
-# Nexcord v0.2 — local cosmetics experiment
+# Nexcord Local Cosmetics
 
-The first local cosmetics milestone supports your profile and other users' profiles.
-- Right-click any user and select **Edit Local Cosmetics**.
-- The full profile view also has a **Nexcord Local Appearance** section.
-- Import PNG, JPG, WebP or GIF, limited to 2 MB per item, 30 items per device.
-- Save custom banners and nameplates locally and preview them.
-- Banner presentation is patched at Discord's standard getPreviewBanner call site. Compatibility must be verified in a running Discord client.
-- Nameplates are previewed and saved but are **not yet rendered as native nameplates**.
-- Nothing is sent to Discord's profile-save endpoint.
+This milestone improves the visual integration of the local-only picker. Each cosmetic opens in its own native Discord modal with a gallery and live preview. The native Discord profile settings' own cosmetic pickers are NOT patched yet.
 
-This is not yet integrated into Discord's own User Settings > Profiles cosmetic pickers.
+Existing v0.2 storage keys and local banner renderer are retained to preserve previously imported banners. The header controls in supported full profile views provide **Choose/Change Banner** and **Choose/Change Nameplate** shortcuts. The user right-click menu has direct options for each.
+
+Nameplate native rendering is still in development. No cosmetics are uploaded to Discord or applied to anyone else's account.
