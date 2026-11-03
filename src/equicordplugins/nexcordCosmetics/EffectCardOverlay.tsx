@@ -16,7 +16,10 @@ import type { EffectDefinition, EffectLayer } from "./EffectAssets";
 
 const logger = new Logger("NexcordEffectOverlay");
 type Mount = { card: HTMLElement; host: HTMLElement; root: Root; position: string; };
-let mounted: Mount | undefined;
+// Two independently managed surfaces, so opening a popout never removes
+// the native editor's effect (and vice versa).
+export type EffectSurface = "editor" | "popout";
+const mounts = new Map<EffectSurface, Mount>();
 
 function hasProfileAvatar(element: HTMLElement, memberY: number): boolean {
     return [...element.querySelectorAll("img")].some(image => {
@@ -131,36 +134,43 @@ function EffectOverlay({ userId, card }: { userId: string; card: HTMLElement; })
     );
 }
 
-export function scanNativeEffectCard(rail: HTMLElement, userId: string) {
-    const card = findProfileCard(rail);
-    const activeMount = mounted;
-    if (activeMount && activeMount.card === card && activeMount.host.isConnected) return;
-    stopNativeEffectCard();
+export function mountLocalEffectCard(surface: EffectSurface, card: HTMLElement | undefined, userId: string) {
+    const existing = mounts.get(surface);
+    if (card && existing?.card === card && existing.host.isConnected) return;
+    stopLocalEffectCard(surface);
     if (!card) return;
+
     const host = document.createElement("div");
     host.className = "nexcord-effect-host";
-    host.dataset.nexcordEffectHost = "true";
-    const originalPosition = card.style.position;
+    host.dataset.nexcordEffectHost = surface;
+    const oldPosition = card.style.position;
     if (getComputedStyle(card).position === "static") card.style.position = "relative";
     card.append(host);
     try {
         const root = createRoot(host);
-        mounted = { card, host, root, position: originalPosition };
+        mounts.set(surface, { card, host, root, position: oldPosition });
         root.render(<EffectOverlay userId={userId} card={card} />);
     } catch (error) {
-        logger.error("Unable to attach local profile effect overlay", error);
+        logger.error("Unable to attach " + surface + " effect overlay", error);
         host.remove();
-        card.style.position = originalPosition;
+        card.style.position = oldPosition;
     }
 }
-export function stopNativeEffectCard() {
-    if (!mounted) return;
-    const old = mounted;
-    mounted = undefined;
-    // Avoid unmounting a React root synchronously during native DOM mutations.
+export function stopLocalEffectCard(surface: EffectSurface) {
+    const old = mounts.get(surface);
+    if (!old) return;
+    mounts.delete(surface);
+    // Don't unmount React synchronously while the surrounding Discord tree is
+    // being committed; it can trigger a React unmount crash.
     queueMicrotask(() => {
         old.root.unmount();
         old.host.remove();
         if (old.card.style.position === "relative") old.card.style.position = old.position;
     });
+}
+export function scanNativeEffectCard(rail: HTMLElement, userId: string) {
+    mountLocalEffectCard("editor", findProfileCard(rail), userId);
+}
+export function stopNativeEffectCard() {
+    stopLocalEffectCard("editor");
 }
