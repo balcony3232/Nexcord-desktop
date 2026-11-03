@@ -12,6 +12,10 @@ import { RestAPI } from "@webpack/common";
 export type ShopKind = "nameplate" | "decoration" | "effect" | "frame";
 export type ShopItem = {
     skuId: string;
+    /** Parent shop product (often a bundle), distinct from the actual effect SKU. */
+    productSkuId?: string;
+    /** Collectible effect/config ID, which may differ from its SKU. */
+    itemId?: string;
     kind: ShopKind;
     name: string;
     previewUrl?: string;
@@ -77,13 +81,18 @@ function normalize(product: Record<string, any>, raw: Record<string, any>, categ
     if (!id) return;
     // A bundle can contain multiple separately-rendered cosmetics.
     // Name each option for its individual item, not just its enclosing bundle.
-    const name = (string(raw.title) ?? string(raw.label) ?? string(product.name) ?? "Discord cosmetic").slice(0, 120);
+    const members = (Array.isArray(product.bundled_products) ? product.bundled_products
+        : Array.isArray(product.bundledProducts) ? product.bundledProducts : []) as Record<string, any>[];
+    const matchingMember = members.find(member => sku(member.sku_id) === id || sku(member.skuId) === id);
+    // Show the real effect name, not the enclosing "X Bundle" product name.
+    const name = (string(raw.title) ?? string(matchingMember?.name)
+        ?? string(raw.label) ?? string(product.name) ?? "Discord cosmetic").slice(0, 120);
     const asset = string(raw.asset);
     const palette = string(raw.palette);
     // A native nameplate needs the asset and palette, not just a picture.
     if (kind === "nameplate" && (!asset || !palette)) return;
     if (kind === "decoration" && !asset) return;
-    const previewUrl = previewFor(raw, product);
+    const previewUrl = previewFor(raw, matchingMember ?? product) ?? previewFor(raw, product);
     let effect: Record<string, unknown> | undefined;
     if (kind === "effect") {
         effect = {
@@ -100,7 +109,13 @@ function normalize(product: Record<string, any>, raw: Record<string, any>, categ
             type: 1
         };
     }
-    return { skuId: id, kind, name, previewUrl, asset: asset?.slice(0, 500), palette: palette?.slice(0, 40), effect, category };
+    return {
+        skuId: id,
+        productSkuId: sku(product.sku_id) ?? sku(product.skuId),
+        itemId: sku(raw.id),
+        kind, name, previewUrl, asset: asset?.slice(0, 500),
+        palette: palette?.slice(0, 40), effect, category
+    };
 }
 
 /**
