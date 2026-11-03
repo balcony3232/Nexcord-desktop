@@ -96,7 +96,10 @@ function parseResponse(body: unknown): Map<string, EffectDefinition> {
         if (!obj) return;
         const parsed = parseDefinition(obj);
         if (parsed) definitions.set(parsed.skuId, parsed);
-        for (const key of ["profile_effects", "profileEffects", "effects", "data", "body", "items", "products", "bundled_products"]) {
+        // Discord's /user-profile-effects endpoint returns an object with
+        // `profile_effect_configs`, NOT `profile_effects`. Omitting this
+        // container made every entry look like it lacked animation layers.
+        for (const key of ["profile_effect_configs", "profileEffectConfigs", "profile_effects", "profileEffects", "effects", "data", "body", "items", "products", "bundled_products", "bundledProducts"]) {
             const child = obj[key];
             if (child && typeof child === "object") visit(child, depth + 1);
         }
