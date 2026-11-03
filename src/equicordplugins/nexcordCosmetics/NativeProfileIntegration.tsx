@@ -15,6 +15,8 @@ import { applyAsset, getAppearance, importAsset, listAssets, loadCosmetics, subs
 import type { CosmeticKind } from "./storage";
 import type { ShopKind } from "./ShopCatalog";
 import { ShopGallery } from "./ShopGallery";
+import { applyShopItem } from "./ShopCatalog";
+import { scanNativeNameplate, stopNativeNameplate } from "./NativeNameplate";
 import { scanNativeEffectCard, stopNativeEffectCard } from "./EffectCardOverlay";
 
 type Surface = "sidebar" | "picker";
@@ -206,11 +208,16 @@ function scan() {
             break;
         }
         const nameplateLabels = labels.get("Nameplate") ?? [];
+        let mountedNameplate = false;
         for (const heading of nameplateLabels) {
-            if (!getProfileRail(heading)) continue;
+            const rail = getProfileRail(heading);
+            if (!rail) continue;
             addTrigger(heading, "nameplate", "sidebar");
+            scanNativeNameplate(heading, rail, UserStore.getCurrentUser()!.id);
+            mountedNameplate = true;
             break;
         }
+        if (!mountedNameplate) stopNativeNameplate();
 
         // Add a compact My Custom selector in the *real* Change Nameplate
         // dialog, next to "Your Nameplates", without moving Discord's grid.
@@ -245,6 +252,7 @@ export function startNativeProfileIntegration() {
 }
 
 export function stopNativeProfileIntegration() {
+    stopNativeNameplate();
     stopNativeEffectCard();
     observer?.disconnect();
     observer = undefined;
@@ -331,6 +339,7 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
         setError("");
         try {
             await applyAsset(userId, kind as CosmeticKind, id);
+            if (kind === "nameplate") await applyShopItem(userId, "nameplate", undefined);
             showToast({ text: "Local " + label + " applied — only you can see it", variant: "success" });
             setOpen(false);
         } catch (err) {
@@ -347,6 +356,7 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
         try {
             const asset = await importAsset(kind as CosmeticKind, file);
             await applyAsset(userId, kind as CosmeticKind, asset.id);
+            if (kind === "nameplate") await applyShopItem(userId, "nameplate", undefined);
             showToast({ text: "Custom " + label + " imported and applied locally", variant: "success" });
             setOpen(false);
         } catch (err) {
@@ -439,8 +449,8 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
                         </p>
                     )}
                     {kind === "nameplate" && <p className="nexcord-native-popover-note">
-                        Native nameplate rendering is experimental. If it doesn't display,
-                        your selection will still be saved locally.
+                        Your local nameplate appears in the editor and on your
+                        popout and member-list row (only you can see it).
                     </p>}
                     {error && <p className="nexcord-native-popover-error" role="alert">{error}</p>}
                 </div>, document.body

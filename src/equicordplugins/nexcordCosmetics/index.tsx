@@ -12,6 +12,7 @@ import { LocalCosmeticsModal } from "./LocalCosmeticsModal";
 import { getLocalBanner, loadCosmetics } from "./storage";
 import { startNativeProfileIntegration, stopNativeProfileIntegration } from "./NativeProfileIntegration";
 import { loadShopSelections } from "./ShopCatalog";
+import { startLocalCosmeticSurfaces, stopLocalCosmeticSurfaces } from "./LocalCosmeticSurfaces";
 
 const logger = new Logger("NexcordCosmetics");
 
@@ -21,7 +22,7 @@ function openEditor(userId: string, kind: "banner" | "nameplate" = "banner") {
 
 export default definePlugin({
     name: "NexcordCosmetics",
-    description: "Browse and save local cosmetic previews without modifying account or Nitro state",
+    description: "Render local cosmetics on the profile editor, self popout and member rows without changing Nitro or account data",
     authors: [{ name: "Nexcord", id: 0n }],
     tags: ["Appearance", "Customisation"],
     enabledByDefault: true,
@@ -69,10 +70,12 @@ export default definePlugin({
         // The experimental display adapter caused ambiguous Nitro/profile UI behaviour.
         // Catalogue and stored selections remain available for future safe rendering.
         startNativeProfileIntegration();
+        startLocalCosmeticSurfaces();
         void loadShopSelections().catch(error => logger.error("Failed loading local shop selections", error));
         void loadCosmetics().catch(error => logger.error("Failed loading Nexcord cosmetics", error));
     },
     stop() {
+        stopLocalCosmeticSurfaces();
         stopNativeProfileIntegration();
     }
 });

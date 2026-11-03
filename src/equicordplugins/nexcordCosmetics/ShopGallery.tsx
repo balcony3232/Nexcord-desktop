@@ -7,6 +7,8 @@ import { React, showToast } from "@webpack/common";
 import { applyShopItem, cachedShopItems, getShopSelection, loadShopCatalog, loadShopSelections, subscribeShop } from "./ShopCatalog";
 import type { ShopItem, ShopKind } from "./ShopCatalog";
 import { clearEffectLookupCache, inspectEffectDefinition } from "./EffectAssets";
+import { applyAsset } from "./storage";
+import { NameplateArtwork } from "./NameplateArtwork";
 
 function EffectAssetStatus({ item, catalogLoaded, revision }: {
     item: ShopItem;
@@ -82,7 +84,9 @@ export function ShopGallery({
     const options = search.trim()
         ? all.filter(item => item.name.toLowerCase().includes(search.trim().toLowerCase()))
         : all;
-    const selected = getShopSelection(userId, activeKind);
+    const saved = getShopSelection(userId, activeKind);
+    const selected = activeKind === "nameplate" && saved
+        ? all.find(item => item.skuId === saved.skuId) ?? saved : saved;
     const shown = options.slice(0, 60);
 
     async function refreshCatalog() {
@@ -113,6 +117,7 @@ export function ShopGallery({
             // Saving a *local preview* must not depend on resolving those
             // assets: it is just a selection, not a Discord purchase.
             await applyShopItem(userId, activeKind, item);
+            if (activeKind === "nameplate") await applyAsset(userId, "nameplate", undefined);
             setFeedback(item
                 ? "Selected: " + item.name + " — saved locally for preview."
                 : "Selection cleared. No local " + activeKind + " preview.");
@@ -144,7 +149,9 @@ export function ShopGallery({
                 </div>
             )}
             <p className="nexcord-shop-gallery-info">
-                Browse currently listed Discord collectibles. Selected profile effects are previewed on your local profile card when their animation assets are available. Nothing is purchased or unlocked.
+                {activeKind === "nameplate"
+                    ? "Individual nameplates, with local rendering in the editor, profile popout and member list. Nothing is purchased or unlocked."
+                    : "Select a cosmetic to preview locally. Profile effects render when assets are available. Nothing is purchased or unlocked."}
             </p>
             <input
                 className="nexcord-shop-gallery-search"
@@ -172,8 +179,10 @@ export function ShopGallery({
                         aria-pressed={selected?.skuId === item.skuId}
                         className={selected?.skuId === item.skuId ? "nexcord-shop-gallery-selected" : ""}
                         onClick={() => void select(item)}>
-                        {item.previewUrl
-                            ? <img loading="lazy" src={item.previewUrl} alt="" />
+                        {activeKind === "nameplate"
+                            ? <NameplateArtwork item={item} userId={userId} compact />
+                            : item.previewUrl
+                                ? <img loading="lazy" src={item.previewUrl} alt="" />
                             : <span className="nexcord-shop-none">✦</span>}
                         <small>{item.name}</small>
                         {selected?.skuId === item.skuId && <span className="nexcord-shop-card-check" aria-hidden="true">✓</span>}
@@ -187,13 +196,17 @@ export function ShopGallery({
             {loaded && !all.length && <p className="nexcord-shop-gallery-info">No items of this type are currently available in the catalogue.</p>}
             {selected && (
                 <div className="nexcord-shop-selected-preview">
-                    {selected.previewUrl
-                        ? <img src={selected.previewUrl} alt="" />
+                    {activeKind === "nameplate"
+                        ? <NameplateArtwork item={selected} userId={userId} compact />
+                        : selected.previewUrl
+                            ? <img src={selected.previewUrl} alt="" />
                         : <span className="nexcord-shop-preview-placeholder">✦</span>}
                     <div>
                         <strong>{selected.name}</strong>
                         <span>Selected · Saved locally</span>
-                        <small>Nexcord attempts a local overlay on the profile card when official animation assets are available.</small>
+                        <small>{activeKind === "nameplate"
+                            ? "Locally applied to your editor, self popout and member row."
+                            : "An effect overlay is shown locally when animation assets are available."}</small>
                     </div>
                 </div>
             )}
