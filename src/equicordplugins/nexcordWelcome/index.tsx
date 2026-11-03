@@ -62,7 +62,6 @@ function findContent(): HTMLElement | undefined {
             if (rect.right < window.innerWidth - 65 || rect.bottom < window.innerHeight - 85) continue;
             // Prefer the innermost quest page container. It must not include
             // the DM navigation rail or the outer Discord application root.
-            if (parent.querySelector("[data-nexcord-welcome-host]")) continue;
             return parent;
         }
     }
