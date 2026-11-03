@@ -84,7 +84,7 @@ function LayerImage({ frame, scale }: { frame: EffectLayer; scale: number; }) {
 }
 
 function EffectOverlay({ userId, card }: { userId: string; card: HTMLElement; }) {
-    const [, changed] = React.useReducer((x: number) => x + 1, 0);
+    const [selectionRevision, changed] = React.useReducer((x: number) => x + 1, 0);
     const [effect, setEffect] = React.useState<EffectDefinition | undefined>();
     const [width, setWidth] = React.useState(card.getBoundingClientRect().width);
     const selected = getShopSelection(userId, "effect");
@@ -107,7 +107,7 @@ function EffectOverlay({ userId, card }: { userId: string; card: HTMLElement; })
             });
         }
         return () => { active = false; };
-    }, [selected?.skuId]);
+    }, [selected?.skuId, selectionRevision]);
 
     if (!effect) return null;
     const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
