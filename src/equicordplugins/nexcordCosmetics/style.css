@@ -488,3 +488,128 @@
     margin: 5px 0 0;
 }
 .nexcord-shop-effect-status.error { color: #f3bcba; }
+
+
+/* Actual individual nameplate artwork on native editor/profile surfaces. */
+.nexcord-nameplate-artwork {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-height: 34px;
+    border-radius: inherit;
+    overflow: hidden;
+    isolation: isolate;
+    background: #292a39;
+    color: #fff;
+    pointer-events: none !important;
+}
+.nexcord-nameplate-backdrop,
+.nexcord-nameplate-media {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none !important;
+}
+.nexcord-nameplate-media { object-fit: fill; }
+.nexcord-nameplate-artwork-identity {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    width: 100%;
+    height: 100%;
+    padding: 0 9px;
+    box-sizing: border-box;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 650;
+    white-space: nowrap;
+    text-shadow: 0 1px 3px #000b;
+}
+.nexcord-nameplate-artwork-avatar {
+    width: 25px;
+    height: 25px;
+    flex: 0 0 25px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+.nexcord-nameplate-artwork-user {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.nexcord-nameplate-native-host,
+.nexcord-nameplate-native-preview {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none !important;
+    border-radius: inherit;
+    overflow: hidden;
+}
+.nexcord-nameplate-native-host { z-index: 5; }
+.nexcord-nameplate-custom-preview,
+.nexcord-local-custom-nameplate {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none !important;
+}
+.nexcord-native-popover .nexcord-shop-gallery-grid button:has(.nexcord-nameplate-artwork) {
+    height: 103px;
+}
+.nexcord-native-popover .nexcord-shop-gallery-grid button > .nexcord-nameplate-artwork {
+    flex: 1 1 auto;
+    min-height: 35px;
+    max-height: 64px;
+    border-radius: 5px;
+}
+.nexcord-native-popover .nexcord-shop-selected-preview > .nexcord-nameplate-artwork {
+    width: 125px;
+    height: 52px;
+    flex: 0 0 125px;
+    border-radius: 5px;
+}
+.nexcord-popout-nameplate-host {
+    width: calc(100% - 32px);
+    height: 39px;
+    margin: 7px 16px 8px;
+    pointer-events: none !important;
+}
+.nexcord-popout-nameplate-host:not(:has(.nexcord-nameplate-artwork,.nexcord-local-custom-nameplate)) {
+    display: none;
+}
+.nexcord-popout-nameplate-host > .nexcord-nameplate-artwork,
+.nexcord-popout-nameplate-host > .nexcord-local-custom-nameplate {
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+}
+.nexcord-member-nameplate-host {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    border-radius: 7px;
+    overflow: hidden;
+    pointer-events: none !important;
+}
+[data-nexcord-local-member="true"] {
+    isolation: isolate;
+}
+[data-nexcord-local-member="true"] > :not(.nexcord-member-nameplate-host) {
+    position: relative;
+    z-index: 1;
+}
+.nexcord-member-nameplate-host > .nexcord-nameplate-backdrop,
+.nexcord-member-nameplate-host > .nexcord-local-custom-nameplate {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+}

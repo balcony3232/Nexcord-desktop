@@ -49,3 +49,12 @@ This plugin adds compact **My Custom** controls beside Discord's original profil
 - These metadata entries point to Discord CDN assets: media files are not redistributed in Nexcord.
 - Newer effects (including **Lottie's Cauldron**) are not present in that historical archive. When full animation tracks aren't accessible, Nexcord renders only an official Shop thumbnail as a **static local illustration**, not as a working native profile effect.
 - No interaction with Nitro entitlements, purchases or account profile API is performed. Disable NexcordCosmetics to remove the local display.
+
+## Local nameplates in profile popouts and member rows
+
+- The Shop catalogue now uses each **individual nameplate's** asset, not the parent bundle image. These may be animated WebM files or static PNGs.
+- Nameplate selections appear locally inside Discord's original editor tile, on the user's own compact profile popout, and behind their own member-list row. The native member row retains its original avatar and text.
+- The selected local profile effect also appears over the user's compact self popout. Editor and popout overlays are independent.
+- Switching from Shop nameplates to imported image nameplates clears the alternative selection to avoid conflicting previews.
+- All changes are client-side visual presentation; they do not change Nitro, purchase records, permissions, or remotely visible Discord account data.
+- These new surfaces are version-dependent and require screenshot testing in the real Discord desktop client.
