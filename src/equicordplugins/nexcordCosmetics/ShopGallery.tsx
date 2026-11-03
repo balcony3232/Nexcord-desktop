@@ -6,6 +6,26 @@ import { React, showToast } from "@webpack/common";
 
 import { applyShopItem, cachedShopItems, getShopSelection, loadShopCatalog, loadShopSelections, subscribeShop } from "./ShopCatalog";
 import type { ShopItem, ShopKind } from "./ShopCatalog";
+import { getEffectDefinition } from "./EffectAssets";
+
+function EffectAssetStatus({ item }: { item: ShopItem; }) {
+    const [status, setStatus] = React.useState<"loading" | "ready" | "missing">("loading");
+    React.useEffect(() => {
+        let alive = true;
+        setStatus("loading");
+        void getEffectDefinition(item).then(effect => {
+            if (alive) setStatus(effect ? "ready" : "missing");
+        }).catch(() => { if (alive) setStatus("missing"); });
+        return () => { alive = false; };
+    }, [item.skuId]);
+    return (
+        <p className={"nexcord-shop-effect-status" + (status === "missing" ? " error" : "")}>
+            {status === "loading" && "Checking Discord's animated effect layers…"}
+            {status === "ready" && "Official animation layers found. Nexcord will attempt to draw them over your profile card locally."}
+            {status === "missing" && "This Shop entry has no accessible individual animation layers. It stays saved as a preview, but cannot animate yet."}
+        </p>
+    );
+}
 
 export function ShopGallery({
     kind,
@@ -97,7 +117,7 @@ export function ShopGallery({
                 </div>
             )}
             <p className="nexcord-shop-gallery-info">
-                Browse currently listed Discord collectibles and save your choices for local preview. Native collectible rendering is temporarily paused; no purchases or entitlements are changed.
+                Browse currently listed Discord collectibles. Selected profile effects are previewed on your local profile card when their animation assets are available. Nothing is purchased or unlocked.
             </p>
             <input
                 className="nexcord-shop-gallery-search"
@@ -133,6 +153,7 @@ export function ShopGallery({
                     </button>
                 ))}
             </div>
+            {activeKind === "effect" && selected && <EffectAssetStatus item={selected} />}
             {feedback && <p className="nexcord-shop-gallery-feedback" role="status">{feedback}</p>}
             {error && <p role="alert" className="nexcord-native-popover-error">{error}</p>}
             {!loaded && !all.length && !error && <p className="nexcord-shop-gallery-info">Loading items from Discord’s Shop…</p>}
@@ -145,7 +166,7 @@ export function ShopGallery({
                     <div>
                         <strong>{selected.name}</strong>
                         <span>Selected · Saved locally</span>
-                        <small>This is a catalogue preview; native Discord cosmetic rendering is not enabled yet.</small>
+                        <small>Nexcord attempts a local overlay on the profile card when official animation assets are available.</small>
                     </div>
                 </div>
             )}
