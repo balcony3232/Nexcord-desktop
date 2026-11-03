@@ -26,8 +26,8 @@ function EffectAssetStatus({ item, catalogLoaded, revision }: {
         void inspectEffectDefinition(item).then(result => {
             if (!alive) return;
             setStatus(result.definition ? "ready" : "missing");
-            setDetails(result.reason + (result.definition && !result.definition.layers.length
-                ? " This is a fallback preview, not the complete animated Discord effect." : ""));
+            setDetails(result.reason + (result.definition?.previewOnly
+                ? " It is a still image or limited Shop preview, not the complete animated effect." : ""));
             setStoreStatus(result.storeState ?? "");
             setCandidates(result.candidates);
         }).catch(error => {
@@ -41,7 +41,7 @@ function EffectAssetStatus({ item, catalogLoaded, revision }: {
     return (
         <div className={"nexcord-shop-effect-status" + (status === "missing" ? " error" : "")}>
             {status === "loading" && "Looking up individual Discord effect animation tracks…"}
-            {status === "ready" && "A profile effect visual was found. Nexcord will try to show it on your local profile card."}
+            {status === "ready" && "Effect artwork located. Nexcord will try to render it on your local profile."}
             {status === "missing" && "No animation found for this selection; it remains a saved local preview."}
             {!!storeStatus && <div className="nexcord-shop-effect-detail">Local Discord effect store: {storeStatus}.</div>}
             {!!details && <div className="nexcord-shop-effect-detail">{details}</div>}

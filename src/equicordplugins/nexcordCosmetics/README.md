@@ -43,3 +43,9 @@ This plugin adds compact **My Custom** controls beside Discord's original profil
 - Clicking a tile highlights it with a checkmark, shows the chosen asset in a selected-preview card, and keeps the picker open.
 - Frames are selectable previews as well, **not** native profile frames.
 - Native Discord rendering is still disabled because the earlier profile-store hooks affected profile/Nitro presentation.
+
+## Historical effect animation data fallback
+- Bundles metadata (not images) for **305** previously archived Discord profile effects from [aamiaa/discord-api-diff](https://github.com/aamiaa/discord-api-diff/blob/main/profile-effects.json), matched by effect SKU/ID or exact title.
+- These metadata entries point to Discord CDN assets: media files are not redistributed in Nexcord.
+- Newer effects (including **Lottie's Cauldron**) are not present in that historical archive. When full animation tracks aren't accessible, Nexcord renders only an official Shop thumbnail as a **static local illustration**, not as a working native profile effect.
+- No interaction with Nitro entitlements, purchases or account profile API is performed. Disable NexcordCosmetics to remove the local display.

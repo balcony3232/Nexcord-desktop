@@ -9,6 +9,7 @@ import { RestAPI } from "@webpack/common";
 import { findStore } from "@webpack";
 
 import { cachedShopItems } from "./ShopCatalog";
+import archivedEffectMetadata from "./effectArchive.json";
 import type { ShopItem } from "./ShopCatalog";
 
 export interface EffectLayer {
@@ -31,9 +32,11 @@ export interface EffectDefinition {
     staticFrameSrc?: string;
     /** Animated Shop composite, not an official full-screen animation layer. */
     previewAnimatedSrc?: string;
+    /** True only when no official effect animation layers were available. */
+    previewOnly?: boolean;
 }
-const CDN = /^https:\/\/(?:cdn\.discordapp\.com|media\.discordapp\.net)\/assets\/profile_effects\//;
-const PREVIEW_CDN = /^https:\/\/(?:cdn\.discordapp\.com|media\.discordapp\.com|media\.discordapp\.net)\/assets\//;
+const CDN = /^https:\/\/(?:cdn\.discordapp\.com|media\.discordapp\.net)\/(?:assets\/(?:profile_effects\/|content\/)|media\/v1\/collectibles-shop\/)/;
+const PREVIEW_CDN = /^https:\/\/(?:cdn\.discordapp\.com|media\.discordapp\.com|media\.discordapp\.net)\/(?:assets\/|media\/v1\/collectibles-shop\/)/;
 const MAX_LAYERS = 16;
 const MAX_DEFINITIONS = 1500;
 let definitionsPromise: Promise<Map<string, EffectDefinition>> | undefined;
@@ -125,6 +128,25 @@ function parseResponse(body: unknown): Map<string, EffectDefinition> {
     visit(body, 0);
     return definitions;
 }
+/**
+ * Public historical effect metadata, not media files. This packaged archive
+ * contains 305 archived Discord configs and includes no user information.
+ * Discord CDN URLs are fetched by the image renderer only when selected.
+ */
+let archivedDefinitions: Map<string, EffectDefinition> | undefined;
+function getArchivedDefinitions(): Map<string, EffectDefinition> {
+    if (archivedDefinitions) return archivedDefinitions;
+    const defs = new Map<string, EffectDefinition>();
+    for (const value of archivedEffectMetadata) {
+        const config = parseDefinition(value);
+        if (!config || !config.layers.length) continue;
+        defs.set(config.skuId, config);
+        if (config.itemId) defs.set(config.itemId, config);
+    }
+    archivedDefinitions = defs;
+    return defs;
+}
+
 async function getDefinitions(): Promise<Map<string, EffectDefinition>> {
     if (!definitionsPromise) {
         definitionsPromise = RestAPI.get({ url: "/user-profile-effects", retries: 1 })
@@ -272,6 +294,19 @@ async function lookupEffect(item: ShopItem): Promise<EffectLookup> {
         reason: "Animation loaded from Discord's own ProfileEffectStore."
     };
 
+    // Use a locally packaged *historical* archive of effect config metadata
+    // before retrying an endpoint which now returns HTTP 404. IDs and exact
+    // names are matched against real assets; never substitute another effect.
+    const archive = getArchivedDefinitions();
+    const archived = findMatch(archive, candidates, live?.name ?? item.name);
+    if (archived) return {
+        definition: archived,
+        availableConfigs: new Set(archive.values()).size,
+        candidates,
+        storeState: local.state,
+        reason: "Authentic archived Discord animation layers matched this effect."
+    };
+
     let availableConfigs = 0;
     let endpointError = "";
     try {
@@ -316,11 +351,27 @@ async function lookupEffect(item: ShopItem): Promise<EffectLookup> {
     }
 
     if (visualFallback) return {
-        definition: visualFallback,
+        definition: { ...visualFallback, previewOnly: !visualFallback.layers.length },
         availableConfigs, candidates, storeState: local.state,
         reason: visualFallback.reducedMotionSrc || visualFallback.staticFrameSrc
             ? "Full effect layers unavailable; using Discord's reduced-motion/static profile asset."
             : "Full effect layers unavailable; using an animated Shop-preview composite instead."
+    };
+
+    // An official Shop thumbnail is NOT a full profile effect. Still, showing
+    // the real artwork over the local profile card makes selection functional
+    // while we source current animation layers. Label it explicitly as still.
+    const thumbnail = live?.previewUrl ?? item.previewUrl;
+    if (thumbnail && PREVIEW_CDN.test(thumbnail) && thumbnail.length < 1024) return {
+        definition: {
+            skuId: item.skuId,
+            name: live?.name ?? item.name,
+            layers: [],
+            staticFrameSrc: thumbnail,
+            previewOnly: true
+        },
+        availableConfigs, candidates, storeState: local.state,
+        reason: "Only a static Discord Shop thumbnail is available for this effect; displaying that artwork locally instead of the original animation."
     };
 
     return {
