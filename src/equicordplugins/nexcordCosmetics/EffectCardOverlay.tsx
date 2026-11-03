@@ -128,7 +128,8 @@ function EffectOverlay({ userId, card }: { userId: string; card: HTMLElement; })
 
 export function scanNativeEffectCard(rail: HTMLElement, userId: string) {
     const card = findProfileCard(rail);
-    if (mounted?.card === card && mounted.host.isConnected) return;
+    const activeMount = mounted;
+    if (activeMount && activeMount.card === card && activeMount.host.isConnected) return;
     stopNativeEffectCard();
     if (!card) return;
     const host = document.createElement("div");
