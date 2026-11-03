@@ -29,8 +29,15 @@ const slots = new Map<HTMLElement, Slot>();
 let observer: MutationObserver | undefined;
 let scanTimer: ReturnType<typeof setTimeout> | undefined;
 let scanning = false;
+// Only the promotional panel inside Discord's own profile editor is hidden.
+// Keep original CSS values so disabling Nexcord restores the panel exactly.
+const hiddenUpsellPanels = new Map<HTMLElement, string>();
 
-const EDITOR_LABELS = ["Nameplate", "Avatar & Decoration", "Display Name Style", "Theme & Banner"];
+// Discord has two left-sidebar layouts: one for profiles with the premium
+// appearance editor and one with a "Banner colour" section / Nitro upsell.
+// These markers apply to BOTH layouts, without changing entitlement state.
+const EDITOR_LABELS = ["Nameplate", "Avatar & Decoration", "Profile Effect & Frame"];
+const BANNER_LABELS = ["Theme & Banner", "Banner colour", "Banner color"];
 const NATIVE_NAMEPLATE_TITLE = "Change Nameplate";
 const OWNED_NAMEPLATES = "Your Nameplates";
 
@@ -59,7 +66,37 @@ function getProfileRail(heading: HTMLElement): HTMLElement | undefined {
         const box = element.getBoundingClientRect();
         if (box.width < 165 || box.width > 440 || box.height < 180) continue;
         const text = element.textContent ?? "";
-        if (EDITOR_LABELS.every(label => text.includes(label))) return element;
+        if (EDITOR_LABELS.every(label => text.includes(label))
+            && BANNER_LABELS.some(label => text.includes(label))) return element;
+    }
+}
+
+/**
+ * Hide only the Nitro sales card inside the *real* profile-editor sidebar.
+ * Do not change premium type flags, account entitlements, billing state,
+ * native product pickers, or any other Nitro advertising elsewhere.
+ */
+function hideEditorNitroPromotion(rail: HTMLElement) {
+    const buttons = rail.querySelectorAll<HTMLElement>("button,[role='button']");
+    for (const button of buttons) {
+        if (button.textContent?.trim() !== "Preview Nitro") continue;
+        let ancestor: HTMLElement | null = button;
+        for (let depth = 0; depth < 7 && ancestor && ancestor !== rail; depth++, ancestor = ancestor.parentElement) {
+            const text = ancestor.textContent ?? "";
+            if (!text.includes("Preview Nitro") || !text.includes("Level up your look")) continue;
+            // Protect the surrounding profile editor from being hidden if
+            // Discord rearranges the components in a future version.
+            if (EDITOR_LABELS.some(label => text.includes(label))
+                || BANNER_LABELS.some(label => text.includes(label))
+                || text.includes("Display Name Style")) return;
+            const box = ancestor.getBoundingClientRect();
+            if (box.height > 360 || box.width > 440) return;
+            if (!hiddenUpsellPanels.has(ancestor)) {
+                hiddenUpsellPanels.set(ancestor, ancestor.style.display);
+                ancestor.style.display = "none";
+            }
+            return;
+        }
     }
 }
 
@@ -107,13 +144,20 @@ function scan() {
             queueMicrotask(() => slot.root.unmount());
         }
 
-        const labels = labelElements(new Set([...EDITOR_LABELS, NATIVE_NAMEPLATE_TITLE, OWNED_NAMEPLATES]));
+        const labels = labelElements(new Set([
+            ...EDITOR_LABELS, ...BANNER_LABELS,
+            "Display Name Style", NATIVE_NAMEPLATE_TITLE, OWNED_NAMEPLATES
+        ]));
         if (!UserStore.getCurrentUser()?.id) return;
 
-        const bannerLabels = labels.get("Theme & Banner") ?? [];
-        for (const heading of bannerLabels) {
-            if (!getProfileRail(heading)) continue;
+        // A verified narrow rail is necessary before modifying this surface.
+        // Nitro's reduced editor uses "Banner colour" instead of "Theme & Banner".
+        const bannerHeadings = BANNER_LABELS.flatMap(label => labels.get(label) ?? []);
+        for (const heading of bannerHeadings) {
+            const rail = getProfileRail(heading);
+            if (!rail) continue;
             addTrigger(heading, "banner", "sidebar");
+            hideEditorNitroPromotion(rail);
             break;
         }
         for (const heading of labels.get("Avatar & Decoration") ?? []) {
@@ -172,6 +216,10 @@ export function stopNativeProfileIntegration() {
     observer = undefined;
     if (scanTimer) clearTimeout(scanTimer);
     scanTimer = undefined;
+    for (const [element, originalDisplay] of hiddenUpsellPanels) {
+        element.style.display = originalDisplay;
+    }
+    hiddenUpsellPanels.clear();
     const saved = [...slots.entries()];
     slots.clear();
     queueMicrotask(() => {
