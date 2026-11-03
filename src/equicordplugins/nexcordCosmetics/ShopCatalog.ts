@@ -75,7 +75,9 @@ function normalize(product: Record<string, any>, raw: Record<string, any>, categ
     if (!kind) return;
     const id = sku(raw.sku_id) ?? sku(raw.skuId) ?? sku(product.sku_id) ?? sku(product.skuId);
     if (!id) return;
-    const name = (string(product.name) ?? string(raw.label) ?? string(raw.title) ?? "Discord cosmetic").slice(0, 120);
+    // A bundle can contain multiple separately-rendered cosmetics.
+    // Name each option for its individual item, not just its enclosing bundle.
+    const name = (string(raw.title) ?? string(raw.label) ?? string(product.name) ?? "Discord cosmetic").slice(0, 120);
     const asset = string(raw.asset);
     const palette = string(raw.palette);
     // A native nameplate needs the asset and palette, not just a picture.
@@ -92,11 +94,97 @@ function normalize(product: Record<string, any>, raw: Record<string, any>, categ
             thumbnailPreviewSrc: safeImage(raw.thumbnailPreviewSrc) ?? safeImage(raw.thumbnail_preview_src),
             reducedMotionSrc: safeImage(raw.reducedMotionSrc) ?? safeImage(raw.reduced_motion_src),
             staticFrameSrc: safeImage(raw.staticFrameSrc) ?? safeImage(raw.static_frame_src),
-            // The full effect animation is intentionally not cached.
+            animationType: typeof raw.animationType === "number" ? raw.animationType
+                : typeof raw.animation_type === "number" ? raw.animation_type : undefined,
+            effects: Array.isArray(raw.effects) ? raw.effects : undefined,
             type: 1
         };
     }
     return { skuId: id, kind, name, previewUrl, asset: asset?.slice(0, 500), palette: palette?.slice(0, 40), effect, category };
+}
+
+/**
+ * Check a selected Shop card against Discord's individual product endpoint.
+ * A catalogue card can represent a bundle, and the compact listing often
+ * omits the animation tracks required by the native effect renderer.
+ *
+ * Never accept a "successful" selection without an actual renderable item.
+ * This is a read-only Discord Shop request; it doesn't alter entitlements.
+ */
+export async function resolveRenderableItem(item: ShopItem): Promise<ShopItem> {
+    if (item.kind === "frame") throw new Error("Profile frames are preview-only for now.");
+    const detail = await RestAPI.get({
+        url: "/collectibles-products/" + item.skuId,
+        retries: 2
+    });
+
+    const candidates: Array<{ value: Record<string, any>; matchedId?: string; }> = [];
+    const visited = new WeakSet<object>();
+    const walk = (value: unknown, depth: number) => {
+        if (!value || typeof value !== "object" || visited.has(value) || depth > 12) return;
+        visited.add(value);
+        if (Array.isArray(value)) {
+            for (const child of value) walk(child, depth + 1);
+            return;
+        }
+        const obj = record(value);
+        if (!obj) return;
+        const type = obj.type;
+        const kind = type === 0 ? "decoration" : type === 1 ? "effect"
+            : type === 2 ? "nameplate" : type === 3 ? "frame" : undefined;
+        if (kind === item.kind) {
+            const id = sku(obj.sku_id) ?? sku(obj.skuId);
+            candidates.push({ value: obj, matchedId: id });
+        }
+        for (const key of ["items", "variants", "products", "bundledProducts", "bundled_products", "data", "body"]) {
+            if (obj[key]) walk(obj[key], depth + 1);
+        }
+    };
+    walk(detail.body, 0);
+    const match = candidates.find(candidate => candidate.matchedId === item.skuId)
+        ?? (candidates.length === 1 ? candidates[0] : undefined);
+    if (!match) {
+        throw new Error("Couldn't identify the individual cosmetic in this Shop bundle. Try a different item.");
+    }
+
+    const raw = match.value;
+    const actualId = match.matchedId ?? item.skuId;
+    const resolved: ShopItem = {
+        ...item,
+        skuId: actualId,
+        asset: string(raw.asset) ?? item.asset,
+        palette: string(raw.palette) ?? item.palette,
+        name: (string(raw.title) ?? string(raw.label) ?? item.name).slice(0, 120)
+    };
+    if (item.kind === "nameplate") {
+        if (!resolved.asset || !resolved.palette) {
+            throw new Error("This nameplate has no renderable asset or palette.");
+        }
+    }
+    if (item.kind === "decoration" && !resolved.asset) {
+        throw new Error("This avatar decoration has no renderable asset.");
+    }
+    if (item.kind === "effect") {
+        const tracks = Array.isArray(raw.effects) ? raw.effects : undefined;
+        if (!tracks?.length) {
+            throw new Error("This bundle doesn't expose its profile-effect animation data. Nexcord can't render it yet.");
+        }
+        const animationType = typeof raw.animationType === "number" ? raw.animationType
+            : typeof raw.animation_type === "number" ? raw.animation_type : undefined;
+        resolved.effect = {
+            type: 1,
+            skuId: actualId,
+            title: string(raw.title) ?? resolved.name,
+            description: string(raw.description) ?? "",
+            accessibilityLabel: string(raw.accessibilityLabel) ?? string(raw.accessibility_label) ?? resolved.name,
+            thumbnailPreviewSrc: safeImage(raw.thumbnailPreviewSrc) ?? safeImage(raw.thumbnail_preview_src),
+            reducedMotionSrc: safeImage(raw.reducedMotionSrc) ?? safeImage(raw.reduced_motion_src),
+            staticFrameSrc: safeImage(raw.staticFrameSrc) ?? safeImage(raw.static_frame_src),
+            effects: tracks,
+            animationType
+        };
+    }
+    return resolved;
 }
 
 export function parseShopResponse(payload: unknown): ShopItem[] {
