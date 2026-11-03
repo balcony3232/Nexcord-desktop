@@ -150,17 +150,78 @@ function scanPopout(userId: string) {
     }
 }
 
+/**
+ * Find member rows in BOTH guilds and group DMs. Discord's virtualized member
+ * rows have used data-list-item-id="members-...", member-..., and class-only
+ * layouts. Do not apply a cosmetic based solely on an arbitrary username:
+ * look for an exact user snowflake or matching account avatar, then confirm
+ * the visible member name and compact member-row layout.
+ */
 function findOwnMemberRows(userId: string): HTMLElement[] {
+    const user = UserStore.getUser(userId) ?? UserStore.getCurrentUser();
+    if (!user) return [];
+    const names = [user.globalName, user.username].filter((v): v is string => !!v);
     const rows: HTMLElement[] = [];
-    for (const row of document.querySelectorAll<HTMLElement>("[data-list-item-id]")) {
-        const listId = row.getAttribute("data-list-item-id") ?? "";
-        // Discord's virtual member list uses an ID containing the member's
-        // full snowflake. Never guess from a matching display name.
-        if (!/^members[-_]/.test(listId) || !listId.includes(userId)) continue;
-        const r = row.getBoundingClientRect();
-        if (r.width < 145 || r.width > 450 || r.height < 26 || r.height > 130) continue;
-        rows.push(row);
-        if (rows.length >= 6) break;
+    const seen = new Set<HTMLElement>();
+    const selector = [
+        '[data-list-item-id*="member"]', '[id*="member-"]',
+        '[class*="member_"]', '[class*="member-"]',
+        '[class*="memberListItem"]', '[class*="memberRow"]'
+    ].join(",");
+
+    for (const candidate of document.querySelectorAll<HTMLElement>(selector)) {
+        const r = candidate.getBoundingClientRect();
+        if (r.width < 145 || r.width > 430 || r.height < 32 || r.height > 112) continue;
+        if (r.bottom < 0 || r.top > window.innerHeight || r.right < 0 || r.left > window.innerWidth) continue;
+        if (candidate.closest("[data-nexcord-local-surface]")) continue;
+        // Exclude chat messages/user popouts. Member rows belong in the
+        // right-hand list (guild or group DM), never the main chat pane.
+        if (r.left < window.innerWidth - 475) continue;
+
+        const children = [...candidate.querySelectorAll<HTMLImageElement>("img")];
+        const avatars = children.filter(img => {
+            const imgRect = img.getBoundingClientRect();
+            return imgRect.width >= 22 && imgRect.width <= 65
+                && Math.abs(imgRect.width - imgRect.height) <= 10;
+        });
+        if (!avatars.length) continue;
+
+        const labels = [...candidate.querySelectorAll<HTMLElement>("[title],[aria-label]")];
+        const nameMatches = names.some(name =>
+            exactText(candidate, name).length > 0 ||
+            labels.some(el => el.getAttribute("title") === name || el.getAttribute("aria-label") === name)
+        );
+        if (!nameMatches) continue;
+
+        const listId = (candidate.getAttribute("data-list-item-id") ?? "") + " " +
+            (candidate.getAttribute("id") ?? "") + " " +
+            (candidate.getAttribute("data-user-id") ?? "");
+        const exactSnowflake = new RegExp("(?:^|\\D)" + userId + "(?:\\D|$)").test(listId);
+        const matchingAvatar = avatars.some(img => {
+            const url = img.currentSrc || img.src || "";
+            return url.includes("/avatars/" + userId + "/") ||
+                url.includes("/users/" + userId + "/avatars/");
+        });
+        if (!exactSnowflake && !matchingAvatar) continue;
+
+        // Prefer the innermost matching member row. For nested wrappers,
+        // their height and width tend to be identical, but the row has the
+        // most specific element id/class.
+        const ancestors = [...rows];
+        if (ancestors.some(parent => parent.contains(candidate))) {
+            for (const ancestor of ancestors) {
+                if (ancestor.contains(candidate)) {
+                    rows.splice(rows.indexOf(ancestor), 1);
+                    seen.delete(ancestor);
+                }
+            }
+        } else if (rows.some(row => candidate.contains(row))) continue;
+
+        if (!seen.has(candidate)) {
+            seen.add(candidate);
+            rows.push(candidate);
+        }
+        if (rows.length >= 8) break;
     }
     return rows;
 }
