@@ -7,6 +7,7 @@
  */
 import { RestAPI } from "@webpack/common";
 
+import { cachedShopItems } from "./ShopCatalog";
 import type { ShopItem } from "./ShopCatalog";
 
 export interface EffectLayer {
@@ -22,6 +23,7 @@ export interface EffectLayer {
 
 export interface EffectDefinition {
     skuId: string;
+    itemId?: string;
     name: string;
     layers: EffectLayer[];
     reducedMotionSrc?: string;
@@ -69,13 +71,15 @@ function parseDefinition(input: unknown): EffectDefinition | undefined {
     const e = object(input);
     if (!e) return;
     const skuId = id(e.skuId) ?? id(e.sku_id);
-    if (!skuId || !Array.isArray(e.effects)) return;
+    const itemId = id(e.id);
+    if ((!skuId && !itemId) || !Array.isArray(e.effects)) return;
     const layers = e.effects.slice(0, MAX_LAYERS).map(parseLayer).filter((layer): layer is EffectLayer => !!layer);
     const reducedMotionSrc = cdn(e.reducedMotionSrc) ?? cdn(e.reduced_motion_src);
     const staticFrameSrc = cdn(e.staticFrameSrc) ?? cdn(e.static_frame_src);
     if (!layers.length && !reducedMotionSrc && !staticFrameSrc) return;
     return {
-        skuId,
+        skuId: skuId ?? itemId!,
+        itemId,
         name: typeof e.title === "string" ? e.title.slice(0, 120) : "Profile Effect",
         layers,
         reducedMotionSrc,
@@ -95,7 +99,10 @@ function parseResponse(body: unknown): Map<string, EffectDefinition> {
         const obj = object(value);
         if (!obj) return;
         const parsed = parseDefinition(obj);
-        if (parsed) definitions.set(parsed.skuId, parsed);
+        if (parsed) {
+            definitions.set(parsed.skuId, parsed);
+            if (parsed.itemId) definitions.set(parsed.itemId, parsed);
+        }
         // Discord's /user-profile-effects endpoint returns an object with
         // `profile_effect_configs`, NOT `profile_effects`. Omitting this
         // container made every entry look like it lacked animation layers.
@@ -119,26 +126,115 @@ async function getDefinitions(): Promise<Map<string, EffectDefinition>> {
     return definitionsPromise;
 }
 
-/**
- * Find real animation tracks for the selected item, never a product/bundle
- * thumbnail. Fallback to the detailed product endpoint if necessary.
- */
-export async function getEffectDefinition(item: ShopItem): Promise<EffectDefinition | undefined> {
-    if (item.kind !== "effect") return;
-    if (item.effect) {
-        const own = parseDefinition({ ...item.effect, skuId: item.skuId });
-        if (own) return own;
+export interface EffectLookup {
+    definition?: EffectDefinition;
+    /** Number of unique effect configurations returned by Discord's list endpoint. */
+    availableConfigs: number;
+    /** Read-only collectible SKU and effect ID candidates, not user data. */
+    candidates: string[];
+    reason: string;
+}
+
+const lookupPromises = new Map<string, Promise<EffectLookup>>();
+function normalizedName(input: string) {
+    return input.toLocaleLowerCase().replace(/\s+bundle$/i, "").replace(/[^a-z0-9]/g, "");
+}
+function findMatch(definitions: Map<string, EffectDefinition>, ids: string[], name: string): EffectDefinition | undefined {
+    for (const candidate of ids) {
+        const found = definitions.get(candidate);
+        if (found) return found;
     }
+    // Some Shop cards represent a bundle while the effects endpoint exposes
+    // only the individual cosmetic. Fallback to its exact title, but never
+    // arbitrarily choose the first effect from a multi-item bundle.
+    const base = normalizedName(name);
+    if (base.length < 5) return;
+    const matches = [...new Set(definitions.values())]
+        .filter(effect => normalizedName(effect.name) === base);
+    return matches.length === 1 ? matches[0] : undefined;
+}
+
+async function lookupEffect(item: ShopItem): Promise<EffectLookup> {
+    const live = cachedShopItems("effect").find(effect => effect.skuId === item.skuId);
+    const candidates = [...new Set([
+        item.skuId, item.itemId, item.productSkuId,
+        live?.skuId, live?.itemId, live?.productSkuId
+    ].filter((value): value is string => !!value && /^\d{15,22}$/.test(value)))];
+
+    const inline = item.effect ? parseDefinition({ ...item.effect, skuId: item.skuId }) : undefined;
+    if (inline) return { definition: inline, availableConfigs: 1, candidates, reason: "Animation tracks included in the selected Shop item." };
+
+    let availableConfigs = 0;
+    let endpointError = "";
     try {
         const known = await getDefinitions();
-        const found = known.get(item.skuId);
-        if (found) return found;
-    } catch { /* Fall through to product detail read. */ }
-    try {
-        const result = await RestAPI.get({ url: "/collectibles-products/" + item.skuId, retries: 1 });
-        const definitions = parseResponse(result.body);
-        return definitions.get(item.skuId) ?? (definitions.size === 1 ? [...definitions.values()][0] : undefined);
-    } catch {
-        return undefined;
+        availableConfigs = new Set(known.values()).size;
+        const found = findMatch(known, candidates, live?.name ?? item.name);
+        if (found) return {
+            definition: found, availableConfigs, candidates,
+            reason: "Matched the individual effect in Discord's profile-effect definitions."
+        };
+    } catch (error) {
+        endpointError = "Discord's effect-definition list was unavailable (" +
+            (error instanceof Error ? error.message.slice(0, 140) : String(error).slice(0, 140)) + ").";
     }
+
+    // Direct product details often contain the animation tracks even when a
+    // bundle's catalogue entry contains only the thumbnail / effect SKU.
+    const productSkus = [...new Set([
+        item.skuId, live?.skuId, item.productSkuId, live?.productSkuId
+    ].filter((value): value is string => !!value && /^\d{15,22}$/.test(value)))];
+    let productsChecked = 0;
+    for (const sku of productSkus) {
+        try {
+            const response = await RestAPI.get({ url: "/collectibles-products/" + sku, retries: 1 });
+            productsChecked++;
+            const definitions = parseResponse(response.body);
+            const found = findMatch(definitions, candidates, live?.name ?? item.name)
+                ?? (new Set(definitions.values()).size === 1
+                    ? [...definitions.values()][0] : undefined);
+            if (found) return {
+                definition: found, availableConfigs, candidates,
+                reason: "Found the effect in its individual Shop product details."
+            };
+        } catch {
+            // The SKU might identify an item rather than a product. Check the
+            // bundle's product SKU as well instead of treating that as fatal.
+        }
+    }
+
+    return {
+        availableConfigs, candidates,
+        reason: endpointError
+            ? endpointError + " Shop product details checked: " + productsChecked + "."
+            : availableConfigs === 0
+                ? "Discord returned no animation definitions. Shop product details checked: " + productsChecked + "."
+                : "Discord returned " + availableConfigs +
+                  " animation definitions, but none matched this item's SKU, config ID or title. Shop product details checked: " +
+                  productsChecked + "."
+    };
+}
+
+/** Shared by the visual overlay and picker, avoiding duplicate requests. */
+export function inspectEffectDefinition(item: ShopItem): Promise<EffectLookup> {
+    if (item.kind !== "effect") return Promise.resolve({
+        availableConfigs: 0, candidates: [], reason: "Not a profile-effect collectible."
+    });
+    const cacheKey = [item.skuId, item.itemId, item.productSkuId].join(":");
+    let result = lookupPromises.get(cacheKey);
+    if (!result) {
+        result = lookupEffect(item).catch(error => {
+            lookupPromises.delete(cacheKey);
+            throw error;
+        });
+        lookupPromises.set(cacheKey, result);
+    }
+    return result;
+}
+export function clearEffectLookupCache() {
+    lookupPromises.clear();
+    definitionsPromise = undefined;
+}
+export async function getEffectDefinition(item: ShopItem): Promise<EffectDefinition | undefined> {
+    return (await inspectEffectDefinition(item)).definition;
 }
