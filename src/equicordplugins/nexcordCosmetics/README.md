@@ -16,9 +16,11 @@ This plugin adds compact **My Custom** controls beside Discord's original profil
 - Search by name; select items locally and persist each selection to the device
 - Existing Discord ownership, billing, server permissions and Save/Apply actions are untouched
 
-## Experimental display hooks
-- Nameplate, avatar decoration, and profile effect selections are exposed through a client-only profile store adapter
-- Discord may render them on some surfaces but not others; native rendering is not yet confirmed and requires real-client testing
+## Native collectible rendering currently paused
+- The previous experimental renderer wrapped Discord’s profile and user store getters. It could interfere with Nitro/profile UI.
+- **v0.2 compatibility hotfix disables those hooks**, including the premium display substitution, while leaving the catalogue and saved selections intact.
+- Shop nameplate, avatar decoration and profile effect selections are currently **saved previews only**, not applied to native Discord surfaces.
+- The existing custom-banner renderer remains enabled and unaffected.
 - Profile frames appear in a preview-only catalogue tab; Apply is disabled
 - Imported *custom* nameplates are still preview-only outside the editor
 

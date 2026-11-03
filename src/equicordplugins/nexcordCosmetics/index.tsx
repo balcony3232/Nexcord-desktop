@@ -11,7 +11,6 @@ import { Menu, openModal, UserStore } from "@webpack/common";
 import { LocalCosmeticsModal } from "./LocalCosmeticsModal";
 import { getLocalBanner, loadCosmetics } from "./storage";
 import { startNativeProfileIntegration, stopNativeProfileIntegration } from "./NativeProfileIntegration";
-import { startShopDisplay, stopShopDisplay } from "./ShopDisplay";
 import { loadShopSelections } from "./ShopCatalog";
 
 const logger = new Logger("NexcordCosmetics");
@@ -22,7 +21,7 @@ function openEditor(userId: string, kind: "banner" | "nameplate" = "banner") {
 
 export default definePlugin({
     name: "NexcordCosmetics",
-    description: "Browse local images and Discord Shop collectibles in the real profile editor (local-only)",
+    description: "Browse and save local cosmetic previews without modifying account or Nitro state",
     authors: [{ name: "Nexcord", id: 0n }],
     tags: ["Appearance", "Customisation"],
     enabledByDefault: true,
@@ -66,13 +65,14 @@ export default definePlugin({
         return getLocalBanner(displayProfile?.userId);
     },
     start() {
-        startShopDisplay();
+        // v0.2: Keep native account/profile-store getters completely untouched.
+        // The experimental display adapter caused ambiguous Nitro/profile UI behaviour.
+        // Catalogue and stored selections remain available for future safe rendering.
         startNativeProfileIntegration();
         void loadShopSelections().catch(error => logger.error("Failed loading local shop selections", error));
         void loadCosmetics().catch(error => logger.error("Failed loading Nexcord cosmetics", error));
     },
     stop() {
         stopNativeProfileIntegration();
-        stopShopDisplay();
     }
 });

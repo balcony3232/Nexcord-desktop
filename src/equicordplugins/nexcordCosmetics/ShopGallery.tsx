@@ -68,8 +68,8 @@ export function ShopGallery({
             await applyShopItem(userId, activeKind, resolved);
             showToast({
                 text: resolved
-                    ? "Local " + activeKind + " saved: " + resolved.name + ". Reopen your profile to check the effect."
-                    : "Local " + activeKind + " removed",
+                    ? "Local " + activeKind + " preview saved: " + resolved.name + ". Native display is paused for compatibility."
+                    : "Local " + activeKind + " preview removed",
                 variant: "success"
             });
             onApplied?.();
@@ -93,7 +93,7 @@ export function ShopGallery({
                 </div>
             )}
             <p className="nexcord-shop-gallery-info">
-                Browse currently listed Discord collectibles. Each choice is verified with Discord's item details before local use. This never purchases or unlocks anything.
+                Browse currently listed Discord collectibles and save your choices for local preview. Native collectible rendering is temporarily paused; no purchases or entitlements are changed.
             </p>
             <input
                 className="nexcord-shop-gallery-search"
@@ -131,7 +131,7 @@ export function ShopGallery({
             {error && <p role="alert" className="nexcord-native-popover-error">{error}</p>}
             {!loaded && !all.length && !error && <p className="nexcord-shop-gallery-info">Loading items from Discord’s Shop…</p>}
             {loaded && !all.length && <p className="nexcord-shop-gallery-info">No items of this type are currently available in the catalogue.</p>}
-            {selected && <p className="nexcord-shop-gallery-info"><strong>Saved locally:</strong> {selected.name}. Reopen your profile to test rendering.</p>}
+            {selected && <p className="nexcord-shop-gallery-info"><strong>Saved preview:</strong> {selected.name}. Native rendering is temporarily disabled while the profile and Nitro compatibility issue is investigated.</p>}
             <p className="nexcord-shop-gallery-info">Some retired, event-exclusive or unavailable items may not appear. Preview images are loaded from Discord’s CDN when viewed.</p>
             {activeKind === "frame" && <p className="nexcord-shop-gallery-info">Profile frame display is not yet supported; use this section to explore the catalogue.</p>}
         </div>

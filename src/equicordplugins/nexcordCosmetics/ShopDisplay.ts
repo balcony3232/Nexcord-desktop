@@ -112,9 +112,6 @@ function localProfile(userId: string, profile: NativeProfile | undefined): Nativ
     if (effect && Array.isArray(effect.effect?.effects) && effect.effect.effects.length) {
         override.profileEffectId = effect.skuId;
         override.profileEffect = makeEffect(effect);
-        // Some profile-card renderers gate effects behind a premium visual
-        // state. This changes ONLY the returned local view, not Discord's store.
-        if (!profile.premiumType) override.premiumType = 2;
     }
     try {
         const value = withOverrides(profile, override);
