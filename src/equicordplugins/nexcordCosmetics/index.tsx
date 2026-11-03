@@ -3,57 +3,27 @@
  */
 import "./style.css";
 
-import { addProfileSection, removeProfileSection } from "@api/ProfileSections";
 import { PencilIcon } from "@components/Icons";
 import { Logger } from "@utils/Logger";
 import definePlugin from "@utils/types";
-import { Menu, openModal, React, UserStore } from "@webpack/common";
+import { Menu, openModal, UserStore } from "@webpack/common";
 
 import { LocalCosmeticsModal } from "./LocalCosmeticsModal";
-import { getLocalBanner, getSelectedAsset, loadCosmetics, subscribe } from "./storage";
+import { getLocalBanner, loadCosmetics } from "./storage";
+import { startNativeProfileIntegration, stopNativeProfileIntegration } from "./NativeProfileIntegration";
 
 const logger = new Logger("NexcordCosmetics");
-const SECTION_ID = "nexcord-local-cosmetics";
 
 function openEditor(userId: string, kind: "banner" | "nameplate" = "banner") {
     openModal(modalProps => <LocalCosmeticsModal userId={userId} initialKind={kind} modalProps={modalProps} />);
 }
 
-function ProfileSection({ userId }: { userId: string; isSideBar: boolean; }) {
-    const [, forceUpdate] = React.useReducer(n => n + 1, 0);
-    React.useEffect(() => subscribe(forceUpdate), []);
-    const banner = getSelectedAsset(userId, "banner");
-    const nameplate = getSelectedAsset(userId, "nameplate");
-
-    return (
-        <section className="nexcord-profile-section">
-            <div className="nexcord-profile-section-title">
-                <span>Local Appearance</span>
-                <span className="nexcord-local-tag">Only you</span>
-            </div>
-            <div className="nexcord-profile-section-actions">
-                <button
-                    type="button"
-                    className="nexcord-profile-open"
-                    onClick={() => openEditor(userId, "banner")}
-                >{banner ? "Change Banner" : "Choose Banner"}</button>
-                <button
-                    type="button"
-                    className="nexcord-profile-open"
-                    onClick={() => openEditor(userId, "nameplate")}
-                >{nameplate ? "Change Nameplate" : "Choose Nameplate"}</button>
-            </div>
-        </section>
-    );
-}
-
 export default definePlugin({
     name: "NexcordCosmetics",
-    description: "Edit local banners and nameplates for yourself or another user",
+    description: "Add My Custom galleries inside Discord’s real profile editor and nameplate picker",
     authors: [{ name: "Nexcord", id: 0n }],
     tags: ["Appearance", "Customisation"],
     enabledByDefault: true,
-    dependencies: ["ProfileSectionsAPI"],
     patches: [{
         // Native banner presentation, not profile save or account state.
         // Based on the preview-banner integration already used by USRBG.
@@ -94,10 +64,10 @@ export default definePlugin({
         return getLocalBanner(displayProfile?.userId);
     },
     start() {
-        addProfileSection(SECTION_ID, props => <ProfileSection {...props} />, 15);
+        startNativeProfileIntegration();
         void loadCosmetics().catch(error => logger.error("Failed loading Nexcord cosmetics", error));
     },
     stop() {
-        removeProfileSection(SECTION_ID);
+        stopNativeProfileIntegration();
     }
 });
