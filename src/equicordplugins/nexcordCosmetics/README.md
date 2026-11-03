@@ -1,6 +1,6 @@
 # Nexcord v0.2 — Native cosmetic integration (experimental)
 
-This plugin adds compact **My Custom** controls beside Discord's original profile editor headings. Selecting a custom image doesn't alter Discord's layout or call Discord's profile-save APIs.
+This plugin adds compact **My Custom** controls beside Discord's original profile editor headings in **both Nitro and non-Nitro layouts**. In the non-Nitro layout, the banner selector is attached beside **Banner colour** instead of **Theme & Banner**. Selecting a custom image doesn't alter Discord's account data or call profile-save APIs.
 
 ## What's working
 - User-imported PNG/JPEG/WebP/GIF banners, with a local profile banner override
@@ -30,3 +30,10 @@ This plugin adds compact **My Custom** controls beside Discord's original profil
 - This is experimental and may be affected by Discord updates.
 - If Discord's actual Nameplate, Effect or Decoration UI fails to display an item, the local selection remains saved; please report which surface didn't update.
 - Existing data stays in Nexcord's local IndexedDB. No extra Nexcord server or telemetry.
+
+## Non-Nitro sidebar appearance
+- Nexcord hides only the **Level up your look / Preview Nitro** promotion inside the native profile editor for visual clarity.
+- **Nameplate**, **Avatar & Decoration**, **Banner colour**, **Profile Effect & Frame**, and **Display Name Style** remain in Discord's original layout.
+- If the promo card contains Display Name Style, only its sales text/button is hidden, not the functional styling controls.
+- This does **not** grant Nitro, change subscription state, purchase collectibles, or remove billing screens.
+- The plugin's unsafe profile/UserStore rendering adapter remains disabled. Shop collectibles are **saved previews**, not guaranteed live effects.
