@@ -4,7 +4,7 @@
  */
 import { React, showToast } from "@webpack/common";
 
-import { applyShopItem, cachedShopItems, getShopSelection, loadShopCatalog, loadShopSelections, subscribeShop } from "./ShopCatalog";
+import { applyShopItem, cachedShopItems, getShopSelection, loadShopCatalog, loadShopSelections, resolveRenderableItem, subscribeShop } from "./ShopCatalog";
 import type { ShopKind } from "./ShopCatalog";
 
 export function ShopGallery({
@@ -62,9 +62,14 @@ export function ShopGallery({
         setError("");
         try {
             if (activeKind === "frame") throw new Error("Local profile frame rendering is not available yet");
-            await applyShopItem(userId, activeKind, item);
+            // Resolve the individual collectible and required native render
+            // data before claiming an effect was applied successfully.
+            const resolved = item ? await resolveRenderableItem(item) : undefined;
+            await applyShopItem(userId, activeKind, resolved);
             showToast({
-                text: item ? "Local " + activeKind + " selected: " + item.name : "Local " + activeKind + " removed",
+                text: resolved
+                    ? "Local " + activeKind + " saved: " + resolved.name + ". Reopen your profile to check the effect."
+                    : "Local " + activeKind + " removed",
                 variant: "success"
             });
             onApplied?.();
@@ -88,8 +93,7 @@ export function ShopGallery({
                 </div>
             )}
             <p className="nexcord-shop-gallery-info">
-                Browse currently listed Discord collectibles. Choosing one only changes
-                your local Nexcord view; it does not purchase or unlock anything.
+                Browse currently listed Discord collectibles. Each choice is verified with Discord's item details before local use. This never purchases or unlocks anything.
             </p>
             <input
                 className="nexcord-shop-gallery-search"
@@ -127,7 +131,7 @@ export function ShopGallery({
             {error && <p role="alert" className="nexcord-native-popover-error">{error}</p>}
             {!loaded && !all.length && !error && <p className="nexcord-shop-gallery-info">Loading items from Discord’s Shop…</p>}
             {loaded && !all.length && <p className="nexcord-shop-gallery-info">No items of this type are currently available in the catalogue.</p>}
-            {selected && <p className="nexcord-shop-gallery-info"><strong>Selected locally:</strong> {selected.name}</p>}
+            {selected && <p className="nexcord-shop-gallery-info"><strong>Saved locally:</strong> {selected.name}. Reopen your profile to test rendering.</p>}
             <p className="nexcord-shop-gallery-info">Some retired, event-exclusive or unavailable items may not appear. Preview images are loaded from Discord’s CDN when viewed.</p>
             {activeKind === "frame" && <p className="nexcord-shop-gallery-info">Profile frame display is not yet supported; use this section to explore the catalogue.</p>}
         </div>
