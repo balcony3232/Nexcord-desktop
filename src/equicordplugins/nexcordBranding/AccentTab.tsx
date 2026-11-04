@@ -19,7 +19,8 @@ const PRESETS = [
 ] as const;
 
 export function AccentTab() {
-    const saved = settings.use(["accentColor", "tintDiscord"]);
+    const saved = settings.use(["accentColor", "mode", "glowIntensity", "tintStrength"]);
+    const mode = saved.mode ?? "full";
     const colour = normaliseHex(saved.accentColor) ?? DEFAULT_ACCENT;
     const [draft, setDraft] = React.useState(colour);
     const valid = normaliseHex(draft);
@@ -47,6 +48,21 @@ export function AccentTab() {
 
                 <div className="larpcord-appearance-grid">
                     <section className="larpcord-appearance-panel">
+                        <h3>Appearance mode</h3>
+                        <p>Keep the familiar Discord layout. Switch styles instantly or revert to Original any time.</p>
+                        <div className="larpcord-mode-options" role="group" aria-label="Appearance mode">
+                            {([
+                                ["original", "Original", "Discord's colours and surfaces"],
+                                ["accent", "Accent", "Coloured controls and highlights"],
+                                ["full", "Full Larpcord", "Tinted panels, accents and glow"]
+                            ] as const).map(([value, title, desc]) => (
+                                <button type="button" key={value} className={"larpcord-mode-card" + (mode === value ? " is-selected" : "")}
+                                    aria-pressed={mode === value}
+                                    onClick={() => settings.store.mode = value}>
+                                    <strong>{title}</strong><small>{desc}</small>
+                                </button>
+                            ))}
+                        </div>
                         <h3>Accent colour</h3>
                         <p>Pick a preset or enter any six-digit HEX colour. Changes appear instantly, and your selection is saved.</p>
                         <div className="larpcord-appearance-swatches" role="group" aria-label="Accent colour presets">
@@ -81,26 +97,33 @@ export function AccentTab() {
                             {!valid && <span className="larpcord-appearance-error">Use six hexadecimal digits, e.g. #F58EAF.</span>}
                         </div>
 
-                        <label className="larpcord-appearance-toggle">
-                            <input type="checkbox" checked={saved.tintDiscord}
-                                onChange={event => settings.store.tintDiscord = event.currentTarget.checked} />
-                            <span>
-                                <strong>Colour Discord's buttons too</strong>
-                                <small>Optional. Off by default to keep Discord's native accent and custom themes intact.</small>
-                            </span>
-                        </label>
+                        <div className="larpcord-appearance-sliders">
+                            <label htmlFor="larpcord-tint-range">
+                                Surface tint <strong>{saved.tintStrength}%</strong>
+                            </label>
+                            <input id="larpcord-tint-range" type="range" min="0" max="100" step="1"
+                                value={saved.tintStrength} disabled={mode !== "full"}
+                                onChange={event => settings.store.tintStrength = Number(event.currentTarget.value)} />
+                            <label htmlFor="larpcord-glow-range">
+                                Glow intensity <strong>{saved.glowIntensity}%</strong>
+                            </label>
+                            <input id="larpcord-glow-range" type="range" min="0" max="100" step="1"
+                                value={saved.glowIntensity} disabled={mode !== "full"}
+                                onChange={event => settings.store.glowIntensity = Number(event.currentTarget.value)} />
+                            <small>These controls affect Full Larpcord mode only. Select Original to undo Discord-wide styling.</small>
+                        </div>
                         <div className="larpcord-appearance-footer">
                             <span>Your colours stay on this device, in Larpcord's plugin settings.</span>
-                            <Button variant="secondary" disabled={colour === DEFAULT_ACCENT && !saved.tintDiscord}
-                                onClick={() => { chooseColour(DEFAULT_ACCENT); settings.store.tintDiscord = false; }}>
+                            <Button variant="secondary" disabled={colour === DEFAULT_ACCENT && mode === "full" && saved.glowIntensity === 28 && saved.tintStrength === 38}
+                                onClick={() => { chooseColour(DEFAULT_ACCENT); settings.store.mode = "full"; settings.store.glowIntensity = 28; settings.store.tintStrength = 38; }}>
                                 Reset to default
                             </Button>
                         </div>
                     </section>
 
                     <section className="larpcord-appearance-preview" aria-label="Live accent preview">
-                        <span className="larpcord-appearance-eyebrow">LIVE PREVIEW</span>
-                        <div className="larpcord-preview-shell">
+                        <span className="larpcord-appearance-eyebrow">LIVE PREVIEW · {mode === "full" ? "FULL LARPCORD" : mode.toUpperCase()}</span>
+                        <div className={"larpcord-preview-shell larpcord-preview-" + mode}>
                             <div className="larpcord-preview-heading">
                                 <NexcordLogo width={36} height={36} />
                                 <div>
@@ -114,9 +137,9 @@ export function AccentTab() {
                                 <div><strong>New look, same chats.</strong><p>Customise Larpcord at your own pace.</p></div>
                             </div>
                             <div className="larpcord-preview-tag">✦ Accent ready</div>
-                            <div className="larpcord-preview-action">Preview button</div>
+                            <div className="larpcord-preview-action">{mode === "original" ? "Original Discord" : mode === "accent" ? "Accent mode" : "Full Larpcord"}</div>
                         </div>
-                        <p>The cat logo stays pink; your accent applies to Larpcord's controls, highlights and Welcome page.</p>
+                        <p>The cat logo stays pink. Original leaves Discord unchanged; Accent recolours controls; Full adds coloured surfaces and glow.</p>
                     </section>
                 </div>
             </div>

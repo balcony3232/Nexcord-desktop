@@ -11,7 +11,7 @@ import { removeFromArray } from "@utils/misc";
 import definePlugin, { OptionType, StartAt } from "@utils/types";
 
 import { AccentTab } from "./AccentTab";
-import { applyAccent, DEFAULT_ACCENT, normaliseHex, resetAccent } from "./accent";
+import { applyAccent, DEFAULT_ACCENT, normaliseHex, resetAccent, type AppearanceMode } from "./accent";
 import { NexcordLogo } from "./NexcordLogo";
 
 export const settings = definePluginSettings({
@@ -21,16 +21,41 @@ export const settings = definePluginSettings({
         default: DEFAULT_ACCENT,
         isValid: value => Boolean(normaliseHex(value)) || "Enter a six-digit HEX colour, such as #F58EAF."
     },
+    // Kept for backwards-compatibility with v0.1.2 saved settings.
     tintDiscord: {
         type: OptionType.BOOLEAN,
-        description: "Also colour Discord's brand buttons. Disable to keep Discord's original accent.",
-        default: false
+        description: "Legacy v0.1.2 option, replaced by Appearance Mode.",
+        default: false,
+        hidden: true
+    },
+    mode: {
+        type: OptionType.SELECT,
+        description: "Choose the original Discord look, accent-only controls, or the full Larpcord skin.",
+        options: [
+            { label: "Original Discord", value: "original" },
+            { label: "Accent", value: "accent" },
+            { label: "Full Larpcord", value: "full", default: true }
+        ]
+    },
+    glowIntensity: {
+        type: OptionType.SLIDER,
+        description: "Subtle highlight glow in Full Larpcord mode.",
+        default: 28,
+        markers: [0, 25, 50, 75, 100],
+        stickToMarkers: false
+    },
+    tintStrength: {
+        type: OptionType.SLIDER,
+        description: "Background surface tint strength in Full Larpcord mode.",
+        default: 38,
+        markers: [0, 25, 50, 75, 100],
+        stickToMarkers: false
     }
 });
 
-const accentChanged = () => applyAccent(settings.store.accentColor, settings.store.tintDiscord);
+const accentChanged = () => applyAccent(settings.store.accentColor, settings.store.mode as AppearanceMode, settings.store.glowIntensity, settings.store.tintStrength);
 const accentKey = "plugins.NexcordBranding.accentColor";
-const scopeKey = "plugins.NexcordBranding.tintDiscord";
+const appearanceKeys = ["plugins.NexcordBranding.mode", "plugins.NexcordBranding.glowIntensity", "plugins.NexcordBranding.tintStrength"] as const;
 
 export default definePlugin({
     name: "NexcordBranding",
@@ -55,12 +80,12 @@ export default definePlugin({
         });
         accentChanged();
         SettingsStore.addChangeListener(accentKey, accentChanged);
-        SettingsStore.addChangeListener(scopeKey, accentChanged);
+        for (const key of appearanceKeys) SettingsStore.addChangeListener(key, accentChanged);
     },
     stop() {
         removeFromArray(SettingsPlugin.customEntries, entry => entry.key === "larpcord_appearance" || entry.key === "nexcord_about");
         SettingsStore.removeChangeListener(accentKey, accentChanged);
-        SettingsStore.removeChangeListener(scopeKey, accentChanged);
+        for (const key of appearanceKeys) SettingsStore.removeChangeListener(key, accentChanged);
         resetAccent();
     }
 });

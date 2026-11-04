@@ -14,11 +14,11 @@ export default function NexcordTab() {
                 <NexcordLogo width={76} height={76} />
                 <div>
                     <h2 style={{ margin: 0 }}>Larpcord Desktop</h2>
-                    <p style={{ margin: "6px 0", opacity: .72 }}>v0.1.2 preview • {gitHashShort}</p>
+                    <p style={{ margin: "6px 0", opacity: .72 }}>v0.1.3 preview • {gitHashShort}</p>
                 </div>
             </div>
             <h3>Welcome to Larpcord</h3>
-            <p>Larpcord is an independent, community-built Discord client modification based on Equicord and Vencord. Discord's normal appearance is preserved by default.</p>
+            <p>Larpcord is an independent, community-built Discord client modification based on Equicord and Vencord. Choose Original, Accent, or Full Larpcord modes without changing Discord's familiar layout.</p>
             <p>Customise your accent in Larpcord Settings → Appearance. Plugins and saved presets remain available from the Plugins tab.</p>
             <h3>Early development build</h3>
             <p>Custom loading facts are supplied by LoadingQuotes. Native profile cosmetics, installer automation and other features are still in development.</p>

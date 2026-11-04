@@ -1,7 +1,20 @@
-/* Nexcord spinner-only logo, no changes to ordinary Discord UI. */
+/* v0.1.3: the in-app Discord loading logo is no longer oversized. */
 .nexcord-loading-logo {
-    display: block;
+    display: block !important;
+    width: min(120px, 28vw) !important;
+    height: min(120px, 28vw) !important;
+    max-width: 120px !important;
+    max-height: 120px !important;
+    min-width: 0 !important;
+    flex-shrink: 0;
     object-fit: contain;
+    margin: 0 auto 20px !important;
     pointer-events: none;
     user-select: none;
+    animation: larpcord-logo-enter .35s ease-out both;
 }
+@keyframes larpcord-logo-enter {
+    from {opacity:0;transform:scale(.94);}
+    to {opacity:1;transform:scale(1);}
+}
+@media(prefers-reduced-motion:reduce) {.nexcord-loading-logo{animation:none;}}
