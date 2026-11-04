@@ -63,3 +63,13 @@ This plugin adds compact **My Custom** controls beside Discord's original profil
 - Covers both guild and group-DM member lists. Member rows are matched to the current user using an exact account ID in row attributes or the user's CDN avatar path; ambiguous display-name-only matches are ignored.
 - The native **Profile Effect & Frame** tile now shows the selected local effect's Shop thumbnail with a small My Custom label, without replacing the underlying button or modifying Discord profile data.
 - The popout effect renderer and nameplate editor rendering are unchanged.
+
+## Larpcord v0.1.4 — Local themes and preview overlays
+
+- The existing Discord-native profile editor now exposes a `My Custom` control alongside `Display Name Style` (when the current Discord UI has that heading) for local self-profile accent and background colours, plus clearly labelled local Star, Heart, Moon and Cat badge previews.
+- The local colours appear on the user's own self popout only; the original Discord account profile information, permissions and entitlements are unchanged.
+- Saved Shop avatar decorations appear as an optional static visual preview on the original editor tile; this overlay never captures clicks and doesn't equip or purchase the decoration.
+- Existing custom banners/nameplates and profile effect previews still use their existing local rendering; exact appearance depends on current Discord markup.
+- App-wide Full Larpcord appearance colour is separate from per-profile local theme styling.
+- All local preferences are stored in DataStore, included in a full Larpcord settings backup; there are no remote writes.
+- Feature acceptance requires screenshots from the user's installed v0.1.4 build; profile editor DOM can change across Discord releases.

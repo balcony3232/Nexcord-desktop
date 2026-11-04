@@ -42,3 +42,24 @@ GitHub Actions workflow: `.github/workflows/larpcord-desktop.yml` on `larpcord-d
 - Upgrades standalone installer version to **0.1.2**, retaining the GitHub release auto-updater.
 
 **Smoke tests:** select swatches, enter a custom hex value, toggle Discord colour scope, relaunch and verify settings persist, reset to default, and update from v0.1.1 using the Updater tab.
+
+## v0.1.3 — Appearance modes and staged updating
+
+- Original, Accent and Full Larpcord modes with reversible styling, colour presets and tint/glow sliders.
+- Smaller, centred loading-cat logo with no overlapping loading tip.
+- Staged Windows updates: download, verification, and a separate Restart to Update action.
+- Per-user silent NSIS install path for updates originating from v0.1.3 onwards.
+- Recovery links; the legacy equibop installation directory is preserved rather than automatically moved.
+- User-tested appearance, launch, login, settings and core Discord workflows (26 checks).
+
+## v0.1.4 — Quality & Cosmetics (combined v0.1.4/v0.1.5 plan)
+
+- **Unified dark-mode appearance:** Full Larpcord can colour the entire chat pane, channels/sidebar, member list, message composer, settings and popout surfaces using coordinated darker shades of the selected accent. The new Colour the entire app option is enabled by default.
+- A stronger surface tint slider and reversible Original/Accent modes; does not change Discord's layout or authorisation.
+- Guided settings backup and restore with explicit confirmation, private-data warnings, section selection, and Larpcord-named JSON files. There is also a Backup Settings button on the updater page.
+- Native Profile Editor: local-only accent/background palette and clearly labelled local badge presets. Self popout displays saved theme colours and local badge; decorative Shop thumbnail preview is shown in the editor alongside existing local effects and nameplates.
+- Reduce unnecessary DOM scans in native profile/cosmetic integrations while Discord chats are changing. No promised RAM reductions without Windows measurements.
+- Existing Shop selections and original Discord ownership, Nitro, save flow and native profile data remain untouched. Local previews are visible only within compatible Larpcord clients; they are not official Discord items.
+- Silent update confirmation from v0.1.3 to v0.1.4 still requires a real PC test. The installer is unsigned. Automatic rollback and automatic legacy-directory migration are not implemented.
+
+**Smoke tests:** follow `LARPCORD_V014_TEST_CHECKLIST.md`; test the silent update from v0.1.3, all tinted surfaces, profile editor and custom badge previews, restarts, export and restore after exporting a safety backup.
