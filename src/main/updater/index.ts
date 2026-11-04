@@ -20,7 +20,7 @@ export interface Updater {
     applyUpdate(): Promise<boolean>;
 }
 
-const updater: Updater = IS_UPDATER_DISABLED
+const updater: Updater = (IS_EQUIBOP || IS_UPDATER_DISABLED)
     ? {
         getRepo: async () => `https://github.com/${gitRemote}`,
         listUpdates: async () => [],

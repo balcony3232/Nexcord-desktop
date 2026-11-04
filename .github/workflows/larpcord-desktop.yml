@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: larpcord-standalone-${{ github.ref }}
@@ -84,11 +84,38 @@ jobs:
         run: |
           if (-not (Test-Path .larpcord-shell/dist/win-unpacked/resources/larpcord.asar)) { throw "The custom Larpcord client bundle is missing!" }
           $setups = @(Get-ChildItem .larpcord-shell/dist -Filter "Larpcord-Setup-*.exe" -File)
-          if ($setups.Count -lt 1) { throw "No standalone Larpcord installer was produced." }
+          if ($setups.Count -ne 1) { throw "Expected exactly one standalone Larpcord installer." }
+          if (-not (Test-Path .larpcord-shell/dist/latest.yml)) { throw "Missing latest.yml; in-app updates cannot function." }
+          $blockmaps = @(Get-ChildItem .larpcord-shell/dist -Filter "Larpcord-Setup-*.exe.blockmap" -File)
+          if ($blockmaps.Count -ne 1) { throw "Expected exactly one installer blockmap." }
           $setups | ForEach-Object { Write-Host "$($_.Name) — $($_.Length) bytes" }
       - uses: actions/upload-artifact@v4
         with:
           name: larpcord-windows-standalone-preview
-          path: .larpcord-shell/dist/Larpcord-Setup-*.exe
+          path: |
+            .larpcord-shell/dist/Larpcord-Setup-*.exe
+            .larpcord-shell/dist/Larpcord-Setup-*.exe.blockmap
+            .larpcord-shell/dist/latest.yml
           if-no-files-found: error
           retention-days: 14
+      - name: Publish v0.1.1 prerelease and auto-update metadata
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = (Get-Content .larpcord-shell/package.json -Raw | ConvertFrom-Json).version
+          if ($version -notmatch '^\\d+\\.\\d+\\.\\d+
+) { throw "Invalid release version: $version" }
+          $tag = "v$version"
+          $dir = ".larpcord-shell/dist"
+          $setup = @(Get-ChildItem $dir -Filter "Larpcord-Setup-*.exe" -File)
+          $blockmap = @(Get-ChildItem $dir -Filter "Larpcord-Setup-*.exe.blockmap" -File)
+          $manifest = Join-Path $dir "latest.yml"
+          if ($setup.Count -ne 1 -or $blockmap.Count -ne 1 -or -not (Test-Path $manifest)) { throw "Missing release artifacts" }
+          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "Release $tag already exists; leaving immutable release assets unchanged."
+          } else {
+            gh release create $tag --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --prerelease --title "Larpcord v$version" --notes "Standalone Windows preview with in-app updater. Unsigned build; install only from this project's GitHub releases." $setup[0].FullName $blockmap[0].FullName $manifest
+            if ($LASTEXITCODE -ne 0) { throw "GitHub release publishing failed" }
+          }

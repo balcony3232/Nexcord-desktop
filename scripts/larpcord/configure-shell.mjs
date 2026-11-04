@@ -56,11 +56,24 @@ patch("src/main/startup.ts",'    setAsDefaultProtocolClient("discord");',
 patch("src/main/startup.ts",'import { setAsDefaultProtocolClient } from "./utils/setAsDefaultProtocolClient";\n',"");
 patch("src/main/startup.ts",'app.setAppUserModelId("org.equicord.equibop")',
       'app.setAppUserModelId("app.larpcord.desktop")');
-patch("src/main/updater.ts",
-    'const isOutdated = autoUpdater.checkForUpdates().then(res => Boolean(res?.isUpdateAvailable));',
-    "const isOutdated = Promise.resolve(false); // Not active until Larpcord publishes update metadata.");
-patch("src/main/updater.ts",'    const res = await autoUpdater.checkForUpdates();',
-      "    const res = undefined; // Avoid an unrelated fork's update feed.");
+// Replace the old Equibop updater, which otherwise checks another application's feed.
+// The packaged app-update.yml points to our own GitHub Releases publisher.
+write("src/main/updater.ts", readFileSync(join(root, "scripts/larpcord/desktop-updater.ts"), "utf8"));
+
+// Expose only three dedicated methods to the settings UI via the sandboxed preload.
+patch("src/preload/VesktopNative.ts",
+    '        isOutdated: () => invoke<boolean>(IpcEvents.UPDATER_IS_OUTDATED),',
+    [
+      '        checkLarpcordUpdates: () => invoke("LARPCORD_UPDATE_CHECK"),',
+      '        installLarpcordUpdate: () => invoke("LARPCORD_UPDATE_INSTALL"),',
+      '        onLarpcordUpdateProgress: (callback: (percent: number) => void) => {',
+      '            const listener = (_event: Electron.IpcRendererEvent, percent: number) => callback(percent);',
+      '            ipcRenderer.on("LARPCORD_UPDATE_PROGRESS", listener);',
+      '            return () => ipcRenderer.removeListener("LARPCORD_UPDATE_PROGRESS", listener);',
+      '        },',
+      '        isOutdated: () => invoke<boolean>(IpcEvents.UPDATER_IS_OUTDATED),'
+    ].join("\\n").replaceAll("\\\\n", "\\n")
+);
 patch("build/installer.nsh","$LocalAppData\\equibop","$LocalAppData\\Larpcord");
 patch("src/main/settings.ts",'"Equibop settings"','"Larpcord settings"');
 patch("src/main/settings.ts",'"Equibop state"','"Larpcord state"');

@@ -21,3 +21,11 @@ GitHub Actions workflow: `.github/workflows/larpcord-desktop.yml` on `larpcord-d
 3. Open Discord settings and verify **Larpcord Settings**, **Welcome to Larpcord**, and **Larpcord Desktop Settings**.
 4. Verify installed plugins, cosmetic preferences, and saved presets persist after upgrade.
 5. Check notifications, login, and minimized-to-tray behavior.
+
+## Built-in updater (v0.1.1)
+
+- The standalone **Updater** tab checks Larpcord GitHub Releases instead of the old Nexcord/Equicord client feed.
+- Manual **Check for Updates** and **Download & install** controls, including progress and explicit native confirmation before closing the app.
+- Electron-updater validates the release's SHA-512 metadata and handles NSIS installation. No update silently installs in the background.
+- Windows CI publishes `v0.1.1` as a GitHub prerelease with `latest.yml`, installer, and blockmap on its first successful build.
+- Existing v0.1.0 users must install the v0.1.1 installer manually once; subsequent versions can be installed from inside Larpcord.

@@ -34,6 +34,7 @@ import { React } from "@webpack/common";
 import gitHash from "~git-hash";
 
 import { HashLink, Newer, Updatable } from "./Components";
+import { LarpcordDesktopUpdater } from "./LarpcordDesktopUpdater";
 
 interface CommonProps {
     repo: string;
@@ -139,4 +140,4 @@ function Updater() {
 
 export default IS_UPDATER_DISABLED
     ? null
-    : wrapTab(Updater, "Updater");
+    : wrapTab(IS_EQUIBOP ? LarpcordDesktopUpdater : Updater, "Updater");
