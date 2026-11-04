@@ -6,7 +6,7 @@ import {join,resolve} from "node:path";
 const root=process.cwd(),shell=resolve(process.argv[2]||"");
 if(!existsSync(join(shell,"src/main/vencordDir.ts"))||!existsSync("assets/larpcord-cat.svg"))
     throw Error("Pass a pinned Equibop source directory and run from Larpcord repo root");
-const read=p=>readFileSync(join(shell,p),"utf8");
+const read=p=>readFileSync(join(shell,p),"utf8").replace(/\r\n/g,"\n");
 const write=(p,s)=>writeFileSync(join(shell,p),s);
 function patch(file,from,to){
     const s=read(file);
@@ -49,7 +49,7 @@ write(loader,read(loader).replace(downloader,[
     '  if (!existsSync(VENCORD_DIR)) throw Error("Larpcord client bundle missing; reinstall Larpcord Desktop.");',
     "}"
 ].join("\n")).replace('import { downloadFile, fetchie } from "./http";',
-'当import { fetchie } from "./http";'.replace("当","")));
+'import { fetchie } from "./http";'));
 
 patch("src/main/startup.ts",'    setAsDefaultProtocolClient("discord");',
     "    // Larpcord preview never takes over the official discord:// handler.");
