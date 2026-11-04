@@ -1,6 +1,7 @@
+import "./LarpcordUpdater.css";
 /*
- * Larpcord standalone updater UI, GPL-3.0-or-later.
- * Replaces the old Equicord ASAR updater only for the Windows shell.
+ * Larpcord v0.1.3 updater: download in-app, restart to install silently.
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 import { Button } from "@components/Button";
 import { Card } from "@components/Card";
@@ -15,23 +16,26 @@ type UpdateCheck = {
     currentVersion: string;
     latestVersion: string;
     available: boolean;
+    prepared: boolean;
     releaseUrl: string;
 };
 type UpdaterBridge = {
     checkLarpcordUpdates(): Promise<UpdateCheck>;
-    installLarpcordUpdate(): Promise<{ started: boolean; }>;
+    installLarpcordUpdate(): Promise<{ started: boolean; ready: boolean; }>;
+    restartLarpcordUpdate(): Promise<{ started: boolean; }>;
     onLarpcordUpdateProgress(cb: (percent: number) => void): () => void;
 };
+type Status = "idle" | "checking" | "available" | "downloading" | "prepared" | "restarting";
 
 export function LarpcordDesktopUpdater() {
     const bridge = VesktopNative.app as unknown as UpdaterBridge;
     const [state, setState] = React.useState<UpdateCheck | null>(null);
-    const [status, setStatus] = React.useState<"idle" | "checking" | "ready" | "downloading">("idle");
+    const [status, setStatus] = React.useState<Status>("idle");
     const [progress, setProgress] = React.useState(0);
     const [error, setError] = React.useState("");
 
     React.useEffect(() => bridge.onLarpcordUpdateProgress(percent => {
-        setProgress(Math.round(percent));
+        setProgress(Math.max(0, Math.min(100, Math.round(percent))));
     }), []);
 
     async function check() {
@@ -40,75 +44,106 @@ export function LarpcordDesktopUpdater() {
         try {
             const result = await bridge.checkLarpcordUpdates();
             setState(result);
-            setStatus("ready");
+            setStatus(result.prepared ? "prepared" : "available");
         } catch (err) {
             setState(null);
-            setError(err instanceof Error ? err.message : "Could not check for updates. Try again later.");
+            setError(err instanceof Error ? err.message : "Could not reach Larpcord releases.");
             setStatus("idle");
         }
     }
-
-    async function install() {
-        if (!state?.available) return;
+    async function download() {
+        if (!state?.available || status !== "available") return;
         setProgress(0);
         setStatus("downloading");
         setError("");
         try {
             const result = await bridge.installLarpcordUpdate();
-            if (!result.started) setStatus("ready");
-            // On success the native NSIS updater will close Larpcord and
-            // install the verified Windows package.
+            setStatus(result.ready ? "prepared" : "available");
         } catch (err) {
-            setError(err instanceof Error ? err.message : "The update could not be installed.");
-            setStatus("ready");
+            setError(err instanceof Error ? err.message : "Update download failed.");
+            setStatus("available");
+        }
+    }
+    async function restart() {
+        if (status !== "prepared") return;
+        setStatus("restarting");
+        setError("");
+        try {
+            await bridge.restartLarpcordUpdate();
+            // The process exits and relaunches after verified NSIS installation.
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Could not restart for update.");
+            setStatus("prepared");
         }
     }
 
+    const busy = status === "checking" || status === "downloading" || status === "restarting";
     return (
         <SettingsTab>
-            <Heading tag="h2">Larpcord Updates</Heading>
-            <Paragraph className={Margins.top8}>
-                Keep the standalone Windows application and bundled plugins up to date.
-                Updates come from Larpcord's own GitHub Releases, not Equibop or Nexcord.
-            </Paragraph>
+            <div className="larpcord-update-page">
+                <span className="larpcord-update-eyebrow">LARPCORD / UPDATES</span>
+                <Heading tag="h2">Updates, without the setup wizard.</Heading>
+                <Paragraph className={Margins.top8}>
+                    Download and verify updates inside Larpcord. When you're ready, restart to install silently.
+                </Paragraph>
+                <Card style={{ padding: 20, marginTop: 22, marginBottom: 18 }}>
+                    <div className="larpcord-update-title">
+                        <div className="larpcord-update-icon">✦</div>
+                        <div>
+                            <Heading tag="h3">Windows Desktop</Heading>
+                            {state && <Paragraph className={Margins.top8}>Installed v{state.currentVersion} · Latest v{state.latestVersion}</Paragraph>}
+                        </div>
+                    </div>
+                    <Paragraph className={Margins.top16}>
+                        {status === "checking" ? "Checking the Larpcord release feed…" :
+                         status === "downloading" ? "Downloading and verifying the new release…" :
+                         status === "prepared" ? "The update is downloaded and ready to install." :
+                         status === "restarting" ? "Closing Larpcord to install the update…" :
+                         state?.available ? `Larpcord v${state.latestVersion} is available.` :
+                         state ? "You're running the latest available Larpcord release." :
+                         "Check for the latest Larpcord version."}
+                    </Paragraph>
 
-            <Card style={{ padding: 16, marginTop: 22, marginBottom: 18 }}>
-                <Heading tag="h3">Windows Desktop</Heading>
-                {state && <Paragraph className={Margins.top8}>Installed v{state.currentVersion} · Latest release v{state.latestVersion}</Paragraph>}
-                {status === "idle" && !error && (
-                    <Paragraph className={Margins.top8}>Check for the newest standalone Larpcord version.</Paragraph>
-                )}
-                {status === "checking" && <Paragraph className={Margins.top8}>Checking Larpcord releases…</Paragraph>}
-                {status === "ready" && !state?.available && (
-                    <Paragraph className={Margins.top8}>You're running the latest available Larpcord release.</Paragraph>
-                )}
-                {status === "ready" && state?.available && (
-                    <Paragraph className={Margins.top8}>Larpcord v{state.latestVersion} is available to install.</Paragraph>
-                )}
-                {status === "downloading" && (
-                    <Paragraph className={Margins.top8}>Downloading verified update… {progress}%</Paragraph>
-                )}
-                {error && <Paragraph className={Margins.top8} style={{ color: "var(--text-danger)" }}>{error}</Paragraph>}
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 16 }}>
-                    <Button disabled={status === "checking" || status === "downloading"} onClick={() => void check()}>
-                        {status === "checking" ? "Checking…" : "Check for Updates"}
-                    </Button>
-                    {state?.available && (
-                        <Button variant="primary" disabled={status !== "ready"} onClick={() => void install()}>
-                            {status === "downloading" ? "Installing…" : `Download & Install v${state.latestVersion}`}
-                        </Button>
+                    {status === "downloading" && (
+                        <div className="larpcord-update-progress">
+                            <div className="larpcord-update-track" role="progressbar" aria-label="Update download"
+                                aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}>
+                                <div style={{ width: progress + "%" }} />
+                            </div>
+                            <span>Downloading {progress}%</span>
+                        </div>
                     )}
+                    {error && <Paragraph className={Margins.top8} style={{ color: "var(--text-danger)" }}>{error}</Paragraph>}
+                    <div className="larpcord-update-actions">
+                        <Button disabled={busy || status === "prepared"} onClick={() => void check()}>
+                            {status === "checking" ? "Checking…" : "Check for Updates"}
+                        </Button>
+                        {state?.available && status === "available" && (
+                            <Button variant="primary" onClick={() => void download()}>Download Update</Button>
+                        )}
+                        {status === "prepared" && (
+                            <Button variant="primary" onClick={() => void restart()}>Restart to Update</Button>
+                        )}
+                    </div>
+                </Card>
+                <div className="larpcord-update-recovery">
+                    <Heading tag="h3">Recovery and older versions</Heading>
+                    <Paragraph className={Margins.top8}>
+                        A failed download won't replace your current installation. If a new version misbehaves,
+                        you can reinstall a previous version manually from the release history. Automatic rollback
+                        is not yet enabled.
+                    </Paragraph>
+                    <Paragraph className={Margins.top8}>
+                        <Link href="https://github.com/balcony3232/Nexcord-desktop/releases">Larpcord Releases</Link>
+                        {" · "}
+                        <Link href="https://github.com/balcony3232/Nexcord-desktop/releases/tag/v0.1.2">Previous v0.1.2 installer</Link>
+                    </Paragraph>
+                    <Paragraph className={Margins.top8}>
+                        Updates keep your local Larpcord data. Existing legacy installation folders are retained
+                        until you choose to migrate them; no automatic deletion or relocation.
+                    </Paragraph>
                 </div>
-            </Card>
-
-            <Heading tag="h3">Update source</Heading>
-            <Paragraph className={Margins.top8}>
-                <Link href="https://github.com/balcony3232/Nexcord-desktop/releases">Larpcord GitHub Releases</Link>
-            </Paragraph>
-            <Paragraph className={Margins.top8}>
-                You'll always be asked before downloading and installing an update.
-                Larpcord verifies the update metadata before installation. This development build is unsigned.
-            </Paragraph>
+            </div>
         </SettingsTab>
     );
 }

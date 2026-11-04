@@ -1,7 +1,7 @@
 /*
- * Larpcord Windows native updater, GPL-3.0-or-later.
- * Replaces Equibop's auto-updater so this standalone fork never polls
- * or installs updates published by another project.
+ * Larpcord v0.1.3 native NSIS updater. SPDX-License-Identifier: GPL-3.0-or-later.
+ * Download -> verify -> wait for an explicit Restart to Update click.
+ * app-update.yml is embedded by electron-builder and targets Larpcord releases.
  */
 import { app, BrowserWindow, dialog, ipcMain } from "electron";
 import { autoUpdater } from "electron-updater";
@@ -10,65 +10,65 @@ import { IpcEvents } from "shared/IpcEvents";
 const REPO = "https://github.com/balcony3232/Nexcord-desktop";
 const CHECK = "LARPCORD_UPDATE_CHECK";
 const INSTALL = "LARPCORD_UPDATE_INSTALL";
+const RESTART = "LARPCORD_UPDATE_RESTART";
 const PROGRESS = "LARPCORD_UPDATE_PROGRESS";
 
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = false;
-autoUpdater.allowPrerelease = true; // v0.x builds are GitHub prereleases.
-autoUpdater.allowDowngrade = false; // Never install a lower version.
+autoUpdater.allowPrerelease = true;
+autoUpdater.allowDowngrade = false;
 
 let availableVersion: string | null = null;
+let preparedVersion: string | null = null;
 let checking: Promise<UpdateState> | null = null;
-let installing = false;
+let downloading = false;
 
 type UpdateState = {
     currentVersion: string;
     latestVersion: string;
     available: boolean;
     releaseUrl: string;
+    prepared: boolean;
 };
 
 function requireWindowsBuild() {
     if (process.platform !== "win32" || !app.isPackaged) {
-        throw new Error("The Larpcord updater is available in the installed Windows app only.");
+        throw new Error("Larpcord updates require the installed Windows version.");
     }
 }
-
 function emitProgress(percent: number) {
-    const value = Math.max(0, Math.min(100, Number.isFinite(percent) ? percent : 0));
-    for (const window of BrowserWindow.getAllWindows()) {
-        if (!window.isDestroyed() && !window.webContents.isDestroyed()) {
-            window.webContents.send(PROGRESS, value);
+    const progress = Math.max(0, Math.min(100, Number.isFinite(percent) ? percent : 0));
+    for (const win of BrowserWindow.getAllWindows()) {
+        if (!win.isDestroyed() && !win.webContents.isDestroyed()) {
+            win.webContents.send(PROGRESS, progress);
         }
     }
 }
+autoUpdater.on("download-progress", p => emitProgress(p.percent));
 
-autoUpdater.on("download-progress", progress => emitProgress(progress.percent));
-
-// The legacy buttons are not used for Larpcord; prevent upstream popups.
+// Disable old Equibop update notifications, which point to a different feed.
 ipcMain.handle(IpcEvents.UPDATER_IS_OUTDATED, () => false);
 ipcMain.handle(IpcEvents.UPDATER_OPEN, () => false);
 
 ipcMain.handle(CHECK, async (): Promise<UpdateState> => {
     requireWindowsBuild();
-    if (installing) throw new Error("An update is already being installed.");
+    if (downloading) throw new Error("Finish downloading before checking again.");
     if (checking) return checking;
 
     checking = (async () => {
-        // app-update.yml is embedded at packaging time and points at our
-        // own GitHub publisher. Never use the upstream Equibop update feed.
         const result = await autoUpdater.checkForUpdates();
         const latestVersion = result?.updateInfo?.version ?? app.getVersion();
         const available = Boolean(result?.isUpdateAvailable) && latestVersion !== app.getVersion();
         availableVersion = available ? latestVersion : null;
+        if (preparedVersion !== availableVersion) preparedVersion = null;
         return {
             currentVersion: app.getVersion(),
             latestVersion,
             available,
+            prepared: preparedVersion !== null,
             releaseUrl: REPO + "/releases"
         };
     })();
-
     try {
         return await checking;
     } finally {
@@ -78,31 +78,44 @@ ipcMain.handle(CHECK, async (): Promise<UpdateState> => {
 
 ipcMain.handle(INSTALL, async () => {
     requireWindowsBuild();
-    if (checking) throw new Error("Finish checking for updates first.");
-    if (installing) throw new Error("An update is already being installed.");
-    if (!availableVersion) throw new Error("Check for updates before installing.");
+    if (checking || downloading) throw new Error("An update operation is already in progress.");
+    if (!availableVersion) throw new Error("Check for available updates first.");
+    if (preparedVersion === availableVersion) return { started: true, ready: true };
 
-    const { response } = await dialog.showMessageBox({
+    const answer = await dialog.showMessageBox({
         type: "question",
-        buttons: ["Cancel", "Download and install"],
+        title: "Download Larpcord update",
+        buttons: ["Not now", "Download update"],
         defaultId: 0,
         cancelId: 0,
         noLink: true,
-        title: "Update Larpcord",
-        message: `Install Larpcord v${availableVersion}?`,
-        detail: "Larpcord will download and verify the installer from the project's GitHub release, then close to install. This preview build is unsigned. Save any unsent messages before continuing."
+        message: `Download Larpcord v${availableVersion}?`,
+        detail: "The update will be downloaded and checked first. Larpcord will only close and install when you click Restart to Update. This preview is unsigned."
     });
-    if (response !== 1) return { started: false };
-
-    installing = true;
+    if (answer.response !== 1) return { started: false, ready: false };
+    downloading = true;
     try {
-        // Electron-updater validates the hashes in latest.yml and chooses
-        // the matching NSIS installer. It does not execute arbitrary URLs.
+        // electron-updater checks update metadata and installer hashes.
+        // No arbitrary download paths or executable invocations from the renderer.
         await autoUpdater.downloadUpdate();
-        autoUpdater.quitAndInstall(false, true);
-        return { started: true };
+        preparedVersion = availableVersion;
+        emitProgress(100);
+        return { started: true, ready: true };
     } catch (error) {
-        installing = false;
+        preparedVersion = null;
         throw error;
+    } finally {
+        downloading = false;
     }
+});
+
+ipcMain.handle(RESTART, () => {
+    requireWindowsBuild();
+    if (downloading || checking || !preparedVersion || preparedVersion !== availableVersion) {
+        throw new Error("Download and verify an update before restarting.");
+    }
+    // isSilent=true: NSIS silent install. isForceRunAfter=true: reopen Larpcord.
+    // User explicitly clicked Restart to Update; no background installation.
+    autoUpdater.quitAndInstall(true, true);
+    return { started: true };
 });

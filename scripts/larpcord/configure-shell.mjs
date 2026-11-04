@@ -14,7 +14,7 @@ function patch(file,from,to){
     write(file,s.replace(from,to));
 }
 const pkg=JSON.parse(read("package.json"));
-Object.assign(pkg,{name:"larpcord",desktopName:"larpcord",version:"0.1.2",
+Object.assign(pkg,{name:"larpcord",desktopName:"larpcord",version:"0.1.3",
     description:"Larpcord — independent Discord client based on Equibop and Equicord",
     homepage:"https://github.com/balcony3232/Nexcord-desktop",
     repository:{type:"git",url:"git+https://github.com/balcony3232/Nexcord-desktop.git"}});
@@ -23,7 +23,11 @@ Object.assign(pkg.build,{appId:"app.larpcord.desktop",productName:"Larpcord",
     publish:[{provider:"github",owner:"balcony3232",repo:"Nexcord-desktop",releaseType:"prerelease"}]});
 delete pkg.build.protocols; // Avoid replacing the official Discord deep-link handler.
 pkg.build.win={...pkg.build.win,icon:"build/icon.ico",target:[{target:"nsis",arch:["x64"]}]};
-pkg.build.nsis={...pkg.build.nsis,artifactName:"Larpcord-Setup-"+"$"+"{version}."+"$"+"{ext}"};
+// Per-user, single-click NSIS installation. Existing installations retain their
+// recorded install location; we never overwrite or delete an old Equibop app.
+pkg.build.nsis={...pkg.build.nsis,
+    oneClick:true,perMachine:false,allowToChangeInstallationDirectory:false,
+    runAfterFinish:true,artifactName:"Larpcord-Setup-"+"$"+"{version}."+"$"+"{ext}"};
 write("package.json",JSON.stringify(pkg,null,4)+"\n");
 
 if(!read("src/main/vencordDir.ts").includes('join(SESSION_DATA_DIR, "equicord.asar")'))
@@ -66,6 +70,7 @@ patch("src/preload/VesktopNative.ts",
     [
       '        checkLarpcordUpdates: () => invoke("LARPCORD_UPDATE_CHECK"),',
       '        installLarpcordUpdate: () => invoke("LARPCORD_UPDATE_INSTALL"),',
+      '        restartLarpcordUpdate: () => invoke("LARPCORD_UPDATE_RESTART"),',
       '        onLarpcordUpdateProgress: (callback: (percent: number) => void) => {',
       '            const listener = (_event: Electron.IpcRendererEvent, percent: number) => callback(percent);',
       '            ipcRenderer.on("LARPCORD_UPDATE_PROGRESS", listener);',
@@ -105,4 +110,4 @@ patch("static/views/first-launch.html", 'background: red;', 'background: #43303b
 patch("static/views/first-launch.html", 'background: green;', 'background: #f58eaf; color: #2b1c2c;');
 patch("static/views/common.css", '--link: light-dark(#006ce7, #00a8fc);', '--link: light-dark(#ad3762, #f6a4bd);');
 patch("static/views/common.css", '--link-hover: light-dark(#005bb5, #0086c3);', '--link-hover: light-dark(#89284f, #ffc0d4);');
-console.log("Configured isolated Larpcord v0.1.2 shell with cat splash and branded settings.");
+console.log("Configured isolated Larpcord v0.1.3 shell with cat splash and branded settings.");
