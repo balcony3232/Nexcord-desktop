@@ -9,7 +9,7 @@ const PROPERTIES = [
     "--larpcord-accent-hover", "--larpcord-accent-wash", "--larpcord-accent-border"
 ];
 
-export function normaliseHex(value: string): string | null {
+export function normaliseHex(value: unknown): string | null {
     const match = /^#?([a-f0-9]{6})$/i.exec(String(value).trim());
     return match ? "#" + match[1].toUpperCase() : null;
 }
