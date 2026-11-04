@@ -25,98 +25,126 @@ import { Notice } from "@components/Notice";
 import { Paragraph } from "@components/Paragraph";
 import { SettingsTab, wrapTab } from "@components/settings/tabs/BaseTab";
 import { Margins } from "@utils/margins";
+import { React } from "@webpack/common";
+
+type Section = "all" | "plugins" | "css" | "datastore";
+const sections: { kind: Section; label: string; note: string; }[] = [
+    { kind: "all", label: "All settings", note: "QuickCSS, theme links, plugins and DataStore" },
+    { kind: "plugins", label: "Plugins only", note: "Plugin preferences and enabled plugins" },
+    { kind: "css", label: "QuickCSS only", note: "Your CSS customisations" },
+    { kind: "datastore", label: "Local DataStore", note: "Stored plugin data (can include local cosmetics)" }
+];
 
 function BackupAndRestoreTab() {
+    const [section, setSection] = React.useState<Section>("all");
+    const [confirm, setConfirm] = React.useState(false);
+    const [phase, setPhase] = React.useState<"choose" | "confirm" | "restoring">("choose");
+    const [saving, setSaving] = React.useState(false);
+    const [error, setError] = React.useState("");
+
+    async function exportSelected() {
+        setError("");
+        setSaving(true);
+        try {
+            await downloadSettingsBackup(section);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : String(err));
+        } finally {
+            setSaving(false);
+        }
+    }
+
+    async function importSelected() {
+        if (!confirm || phase !== "confirm") return;
+        setError("");
+        setPhase("restoring");
+        try {
+            await uploadSettingsBackup(section);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : String(err));
+        } finally {
+            setConfirm(false);
+            setPhase("choose");
+        }
+    }
+
     return (
         <SettingsTab>
-            <Heading className={Margins.top16}>Backup & Restore</Heading>
-            <Paragraph className={Margins.bottom20}>
-                Import and export your Equicord settings as a JSON file. This allows you to easily transfer your settings to another device, or recover them after reinstalling Equicord or Discord.
-            </Paragraph>
+            <div style={{ maxWidth: 780 }}>
+                <Heading className={Margins.top16}>Larpcord Backup & Restore</Heading>
+                <Paragraph className={Margins.bottom20}>
+                    Save your appearance presets, plugin configuration, custom CSS and local cosmetic data.
+                    Backups are JSON files stored wherever you choose. No Larpcord server is required.
+                </Paragraph>
+                <Notice.Warning className={Margins.bottom20}>
+                    Restoring overwrites matching local settings. Export a backup before importing.
+                    Backups may contain sensitive plugin data; keep them private and do not share them publicly.
+                    Discord login sessions and account passwords are not backed up.
+                </Notice.Warning>
 
-            <Notice.Warning className={Margins.bottom20}>
-                Importing a settings file will overwrite your current settings. Make sure to export a backup first if you want to keep your current configuration.
-            </Notice.Warning>
+                <Heading>Step 1 — Choose what to back up</Heading>
+                <div role="radiogroup" aria-label="Backup section" style={{ display: "grid", gap: 8, marginTop: 12 }}>
+                    {sections.map(({ kind, label, note }) => (
+                        <label key={kind} style={{
+                            display: "flex", alignItems: "center", gap: 12, padding: "12px 14px",
+                            borderRadius: 9, border: "1px solid var(--border-subtle)",
+                            background: section === kind ? "var(--larpcord-accent-wash,rgba(245,142,175,.08))" : "transparent",
+                            cursor: "pointer"
+                        }}>
+                            <input type="radio" name="larpcord-backup-section"
+                                checked={section === kind} onChange={() => {
+                                    setSection(kind); setPhase("choose"); setConfirm(false);
+                                }} />
+                            <span><strong>{label}</strong><br /><small>{note}</small></span>
+                        </label>
+                    ))}
+                </div>
+                <Flex className={Margins.top16} gap="8px">
+                    <Button variant="primary" disabled={saving || phase === "restoring"}
+                        onClick={() => void exportSelected()}>
+                        {saving ? "Exporting…" : "Export Backup"}
+                    </Button>
+                </Flex>
 
-            <Heading>What's included in a backup</Heading>
-            <Paragraph className={Margins.bottom20}>
-                • Custom QuickCSS<br />
-                • Theme Links<br />
-                • Plugin Settings<br />
-                • DataStore Data
-            </Paragraph>
-
-            <Divider className={Margins.bottom20} />
-
-            <Heading>Import Settings</Heading>
-            <Paragraph className={Margins.bottom16}>
-                Select a previously exported settings file to restore your configuration. This will replace all your current settings with the ones from the backup.
-            </Paragraph>
-
-            <Flex gap="8px" className={Margins.bottom20} style={{ flexWrap: "wrap" }}>
-                <Button
-                    onClick={() => uploadSettingsBackup("all")}
-                    size="small"
-                    variant="secondary"
-                >
-                    Import All Settings
-                </Button>
-                <Button
-                    onClick={() => uploadSettingsBackup("plugins")}
-                    size="small"
-                >
-                    Import Plugins
-                </Button>
-                <Button
-                    onClick={() => uploadSettingsBackup("css")}
-                    size="small"
-                >
-                    Import QuickCSS
-                </Button>
-                <Button
-                    onClick={() => uploadSettingsBackup("datastore")}
-                    size="small"
-                >
-                    Import DataStore
-                </Button>
-            </Flex>
-
-            <Divider className={Margins.bottom20} />
-
-            <Heading>Export Settings</Heading>
-            <Paragraph className={Margins.bottom16}>
-                Download your current settings as a backup file. You can export everything at once, or choose to export only specific parts of your configuration.
-            </Paragraph>
-
-            <Flex gap="8px" style={{ flexWrap: "wrap" }}>
-                <Button
-                    onClick={() => downloadSettingsBackup("all")}
-                    size="small"
-                    variant="secondary"
-                >
-                    Export All Settings
-                </Button>
-                <Button
-                    onClick={() => downloadSettingsBackup("plugins")}
-                    size="small"
-                >
-                    Export Plugins
-                </Button>
-                <Button
-                    onClick={() => downloadSettingsBackup("css")}
-                    size="small"
-                >
-                    Export QuickCSS
-                </Button>
-                <Button
-                    onClick={() => downloadSettingsBackup("datastore")}
-                    size="small"
-                >
-                    Export DataStore
-                </Button>
-            </Flex>
+                <Divider className={Margins.top20} />
+                <Heading className={Margins.top16}>Step 2 — Restore a saved backup</Heading>
+                <Paragraph className={Margins.bottom16}>
+                    Select the same section as the file you exported. Restore will merge settings from the
+                    JSON file into this installation. A restart may be needed for plugins or themes.
+                </Paragraph>
+                {phase === "choose" && (
+                    <Button variant="secondary" onClick={() => {
+                        setConfirm(false); setError(""); setPhase("confirm");
+                    }}>
+                        Review Restore
+                    </Button>
+                )}
+                {phase === "confirm" && (
+                    <div style={{ padding: 16, border: "1px solid var(--larpcord-accent-border)", borderRadius: 10 }}>
+                        <strong>Restore {sections.find(s => s.kind === section)?.label}?</strong>
+                        <Paragraph className={Margins.top8}>
+                            This may replace existing plugin preferences or cosmetic selections. Make a backup first.
+                        </Paragraph>
+                        <label style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 14, cursor: "pointer" }}>
+                            <input type="checkbox" checked={confirm} onChange={e => setConfirm(e.currentTarget.checked)} />
+                            I understand that this can overwrite my existing settings.
+                        </label>
+                        <Flex className={Margins.top16} gap="8px">
+                            <Button variant="primary" disabled={!confirm} onClick={() => void importSelected()}>Choose JSON and Restore</Button>
+                            <Button variant="secondary" onClick={() => { setPhase("choose"); setConfirm(false); }}>Cancel</Button>
+                        </Flex>
+                    </div>
+                )}
+                {phase === "restoring" && <Paragraph>Opening backup file and restoring settings…</Paragraph>}
+                {error && <Paragraph style={{ color: "var(--text-danger)" }} className={Margins.top8}>{error}</Paragraph>}
+                <Divider className={Margins.top20} />
+                <Paragraph className={Margins.top16}>
+                    Larpcord does not back up Discord credentials, account tokens, installed program files,
+                    or large media outside its plugin DataStore. The import format remains compatible with
+                    existing Equicord/Vencord JSON backups.
+                </Paragraph>
+            </div>
         </SettingsTab>
     );
 }
-
 export default wrapTab(BackupAndRestoreTab, "Backup & Restore");
