@@ -20,6 +20,7 @@ import { ShopGallery } from "./ShopGallery";
 import { applyShopItem } from "./ShopCatalog";
 import { scanNativeNameplate, stopNativeNameplate } from "./NativeNameplate";
 import { scanNativeEffectTile, stopNativeEffectTile } from "./NativeEffectTile";
+import { scanNativeDecorationTile, stopNativeDecorationTile } from "./NativeDecorationTile";
 import { scanNativeEffectCard, stopNativeEffectCard } from "./EffectCardOverlay";
 
 type Surface = "sidebar" | "picker";
@@ -198,11 +199,16 @@ function scan() {
             scanNativeEffectCard(rail, UserStore.getCurrentUser()!.id);
             break;
         }
+        let decorationMounted = false;
         for (const heading of labels.get("Avatar & Decoration") ?? []) {
-            if (!getProfileRail(heading)) continue;
+            const rail = getProfileRail(heading);
+            if (!rail) continue;
             addTrigger(heading, "decoration", "sidebar");
+            scanNativeDecorationTile(heading, rail, UserStore.getCurrentUser()!.id);
+            decorationMounted = true;
             break;
         }
+        if (!decorationMounted) stopNativeDecorationTile();
         // The effect and profile-frame sections share one Discord heading.
         // One compact button opens the Effects / Frames tabs.
         let effectTileMounted = false;
@@ -278,6 +284,7 @@ export function startNativeProfileIntegration() {
 }
 
 export function stopNativeProfileIntegration() {
+    stopNativeDecorationTile();
     stopNativeEffectTile();
     stopNativeNameplate();
     stopNativeEffectCard();
