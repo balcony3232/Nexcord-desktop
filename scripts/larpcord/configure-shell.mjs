@@ -89,7 +89,7 @@ for (const file of [
 ]) write(file, read(file).replaceAll("Equibop", "Larpcord"));
 // Use a soft pink accent in the independent shell's setup flow.
 patch("static/views/first-launch.html", 'background: red;', 'background: #43303b;');
-patch("static/views/first-launch.html", 'background: green;', 'background: #f58eaf;\\n            color: #2b1c2c;'.replace("\\\\n", "\\n"));
+patch("static/views/first-launch.html", 'background: green;', 'background: #f58eaf; color: #2b1c2c;');
 patch("static/views/common.css", '--link: light-dark(#006ce7, #00a8fc);', '--link: light-dark(#ad3762, #f6a4bd);');
 patch("static/views/common.css", '--link-hover: light-dark(#005bb5, #0086c3);', '--link-hover: light-dark(#89284f, #ffc0d4);');
 console.log("Configured isolated Larpcord v0.1.1 shell with cat splash and branded settings.");
