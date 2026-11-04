@@ -3,6 +3,7 @@ import "./LarpcordUpdater.css";
  * Larpcord v0.1.3 updater: download in-app, restart to install silently.
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
+import { downloadSettingsBackup } from "@api/SettingsSync/offline";
 import { Button } from "@components/Button";
 import { Card } from "@components/Card";
 import { Heading } from "@components/Heading";
@@ -124,6 +125,8 @@ export function LarpcordDesktopUpdater() {
                         {status === "prepared" && (
                             <Button variant="primary" onClick={() => void restart()}>Restart to Update</Button>
                         )}
+                        <Button variant="secondary" disabled={busy}
+                            onClick={() => void downloadSettingsBackup("all")}>Backup Settings</Button>
                     </div>
                 </Card>
                 <div className="larpcord-update-recovery">
@@ -136,7 +139,11 @@ export function LarpcordDesktopUpdater() {
                     <Paragraph className={Margins.top8}>
                         <Link href="https://github.com/balcony3232/Nexcord-desktop/releases">Larpcord Releases</Link>
                         {" · "}
-                        <Link href="https://github.com/balcony3232/Nexcord-desktop/releases/tag/v0.1.2">Previous v0.1.2 installer</Link>
+                        <Link href="https://github.com/balcony3232/Nexcord-desktop/releases/tag/v0.1.3">Previous v0.1.3 installer</Link>
+                    </Paragraph>
+                    <Paragraph className={Margins.top8}>
+                        Export a settings backup before upgrading if you've customised plugins or local cosmetics.
+                        JSON backups can contain private plugin values; keep them private.
                     </Paragraph>
                     <Paragraph className={Margins.top8}>
                         Updates keep your local Larpcord data. Existing legacy installation folders are retained
