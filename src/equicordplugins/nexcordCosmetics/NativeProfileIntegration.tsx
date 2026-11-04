@@ -261,7 +261,17 @@ function scheduleScan() {
 
 export function startNativeProfileIntegration() {
     if (observer || typeof document === "undefined" || !document.body) return;
-    observer = new MutationObserver(scheduleScan);
+    observer = new MutationObserver(mutations => {
+        // v0.1.4: avoid scanning every new chat message or emoji frame.
+        // React may add headings as either text or nested element nodes.
+        if (slots.size || hiddenUpsellPanels.size || mutations.some(m =>
+            [...m.addedNodes, ...m.removedNodes].some(node => {
+                const text = node.textContent ?? "";
+                return ["Display Name Style", ...EDITOR_LABELS, ...BANNER_LABELS,
+                    NATIVE_NAMEPLATE_TITLE, OWNED_NAMEPLATES].some(label => text.includes(label));
+            })
+        )) scheduleScan();
+    });
     observer.observe(document.body, { childList: true, subtree: true });
     void loadCosmetics().catch(err => logger.error("Cannot load local cosmetics", err));
     scheduleScan();

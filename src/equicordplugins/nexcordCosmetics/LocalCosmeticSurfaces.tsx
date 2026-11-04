@@ -13,6 +13,7 @@ import { mountLocalEffectCard, stopLocalEffectCard } from "./EffectCardOverlay";
 import { NameplateArtwork, NameplateBackdrop } from "./NameplateArtwork";
 import { getShopSelection, subscribeShop } from "./ShopCatalog";
 import { getSelectedAsset, subscribe as subscribeCustom } from "./storage";
+import { getLocalProfileStyle, subscribeProfileStyles } from "./LocalProfileStyle";
 
 const logger = new Logger("NexcordLocalSurfaces");
 
@@ -25,6 +26,27 @@ interface Host {
 let observer: MutationObserver | undefined;
 let timeout: ReturnType<typeof setTimeout> | undefined;
 let popout: { shell: HTMLElement; host: Host; } | undefined;
+let themedShell: HTMLElement | undefined;
+let unsubscribeProfileStyle: (() => void) | undefined;
+function clearProfileTheme() {
+    if (!themedShell) return;
+    themedShell.removeAttribute("data-larpcord-local-theme");
+    themedShell.style.removeProperty("--larpcord-local-profile-accent");
+    themedShell.style.removeProperty("--larpcord-local-profile-background");
+    themedShell = undefined;
+}
+function applyProfileTheme(shell: HTMLElement, userId: string) {
+    if (themedShell && themedShell !== shell) clearProfileTheme();
+    const style = getLocalProfileStyle(userId);
+    if (!style.enabled) {
+        clearProfileTheme();
+        return;
+    }
+    themedShell = shell;
+    shell.setAttribute("data-larpcord-local-theme", "true");
+    shell.style.setProperty("--larpcord-local-profile-accent", style.accent);
+    shell.style.setProperty("--larpcord-local-profile-background", style.background);
+}
 const memberHosts = new Map<HTMLElement, Host>();
 
 function LocalNameplate({ userId, backdropOnly }: { userId: string; backdropOnly?: boolean; }) {
@@ -32,17 +54,32 @@ function LocalNameplate({ userId, backdropOnly }: { userId: string; backdropOnly
     React.useEffect(() => {
         const a = subscribeShop(update);
         const b = subscribeCustom(update);
-        return () => { a(); b(); };
+        const c = subscribeProfileStyles(update);
+        return () => { a(); b(); c(); };
     }, []);
 
     const selected = getShopSelection(userId, "nameplate");
     const custom = getSelectedAsset(userId, "nameplate");
-    if (selected) return backdropOnly
-        ? <NameplateBackdrop item={selected} />
-        : <NameplateArtwork item={selected} userId={userId} compact animate />;
-    if (custom) return <img src={custom.dataUrl} draggable={false} alt=""
-        className="nexcord-local-custom-nameplate" />;
-    return null;
+    const badge = getLocalProfileStyle(userId).badge;
+    if (backdropOnly) {
+        if (selected) return <NameplateBackdrop item={selected} />;
+        if (custom) return <img src={custom.dataUrl} draggable={false} alt=""
+            className="nexcord-local-custom-nameplate" />;
+        return null;
+    }
+    if (!selected && !custom && badge === "none") return null;
+    return (
+        <>
+            {selected
+                ? <NameplateArtwork item={selected} userId={userId} compact animate />
+                : custom
+                    ? <img src={custom.dataUrl} draggable={false} alt="" className="nexcord-local-custom-nameplate"/>
+                    : null}
+            {badge !== "none" && <span className="larpcord-local-badge">
+                ✦ {badge.toUpperCase()} · LOCAL
+            </span>}
+        </>
+    );
 }
 
 function exactText(container: HTMLElement, wanted: string): HTMLElement[] {
@@ -113,6 +150,7 @@ function restore(host: Host) {
     });
 }
 function clearPopout() {
+    clearProfileTheme();
     if (popout) {
         restore(popout.host);
         popout = undefined;
@@ -126,6 +164,7 @@ function scanPopout(userId: string) {
         return;
     }
 
+    applyProfileTheme(shell, userId);
     mountLocalEffectCard("popout", shell, userId);
     if (popout && popout.shell === shell && popout.host.node.isConnected) return;
     if (popout) restore(popout.host);
@@ -271,13 +310,27 @@ function schedule() {
 }
 export function startLocalCosmeticSurfaces() {
     if (observer || typeof document === "undefined" || !document.body) return;
-    observer = new MutationObserver(schedule);
+    observer = new MutationObserver(mutations => {
+        // Ignore ordinary chat messages. Only profile popouts and member-list
+        // changes need to rescan; don't walk the DOM on every message.
+        if (mutations.some(m => {
+            const target = m.target instanceof Element ? m.target : m.target.parentElement;
+            if (target?.closest('[class*="member"],[class*="popout"],[class*="userPanel"]')) return true;
+            return [...m.addedNodes, ...m.removedNodes].some(node =>
+                node.textContent?.includes("Switch Accounts") ||
+                (node instanceof Element && Boolean(node.querySelector('[class*="member"],[class*="popout"]')))
+            );
+        })) schedule();
+    });
     observer.observe(document.body, { subtree: true, childList: true });
+    unsubscribeProfileStyle = subscribeProfileStyles(schedule);
     schedule();
 }
 export function stopLocalCosmeticSurfaces() {
     observer?.disconnect();
     observer = undefined;
+    unsubscribeProfileStyle?.();
+    unsubscribeProfileStyle = undefined;
     if (timeout) clearTimeout(timeout);
     timeout = undefined;
     clearPopout();

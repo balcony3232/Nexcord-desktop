@@ -654,3 +654,23 @@
     text-overflow: ellipsis;
     padding: 2px;
 }
+
+/* v0.1.4 local-only profile theme and visibly labelled cosmetic badge previews. */
+.larpcord-local-theme-picker{display:flex;flex-direction:column;gap:12px;}
+.larpcord-local-theme-picker>p{font-size:11px;line-height:1.45;color:var(--text-muted);margin:0;}
+.larpcord-local-theme-sample{display:flex;flex-direction:column;gap:7px;border:2px solid;border-radius:10px;padding:15px;min-height:105px;color:#fff;}
+.larpcord-local-theme-sample>span{font-size:12px;font-weight:700;}
+.larpcord-local-theme-sample>strong{font-size:18px;}
+.larpcord-local-theme-sample>small{font-size:10px;opacity:.85;}
+.larpcord-local-theme-row{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12px;}
+.larpcord-local-theme-row input[type=color]{width:48px;height:30px;background:transparent;border:0;cursor:pointer;}
+.larpcord-local-theme-row input[type=checkbox]{accent-color:var(--larpcord-accent,#f58eaf)}
+.larpcord-local-theme-label{font-size:11px;font-weight:650;}
+.larpcord-local-badge-presets{display:flex;gap:7px;flex-wrap:wrap;}
+.larpcord-local-badge-presets button,.larpcord-local-theme-reset{background:var(--background-modifier-hover);border:1px solid var(--border-subtle);border-radius:7px;padding:7px 9px;color:var(--text-normal);font-size:11px;cursor:pointer;}
+.larpcord-local-badge-presets button.is-selected{border-color:var(--larpcord-accent,#f58eaf);background:var(--larpcord-accent-wash,rgba(245,142,175,.1));}
+.larpcord-local-theme-reset{align-self:flex-start;margin-top:7px;}
+[data-larpcord-local-theme="true"]{background-color:var(--larpcord-local-profile-background)!important;outline:1px solid var(--larpcord-local-profile-accent);outline-offset:-1px;}
+.nexcord-popout-nameplate-host{position:relative;}
+.nexcord-popout-nameplate-host:not(:has(.nexcord-nameplate-artwork,.nexcord-local-custom-nameplate,.larpcord-local-badge)){display:none;}
+.larpcord-local-badge{position:absolute;top:4px;right:0;background:var(--larpcord-local-profile-background,#27232a);color:var(--larpcord-local-profile-accent,#f58eaf);border:1px solid currentColor;border-radius:6px;padding:3px 6px;font-size:10px;font-weight:700;white-space:nowrap;}
