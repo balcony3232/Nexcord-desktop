@@ -45,6 +45,9 @@ function emitProgress(percent: number) {
     }
 }
 autoUpdater.on("download-progress", p => emitProgress(p.percent));
+// electron-updater emits EventEmitter 'error'; register a listener so a
+// network or metadata failure cannot become an unhandled process error.
+autoUpdater.on("error", error => console.error("[Larpcord update]", error));
 
 // Disable old Equibop update notifications, which point to a different feed.
 ipcMain.handle(IpcEvents.UPDATER_IS_OUTDATED, () => false);
