@@ -9,14 +9,14 @@ import { NexcordLogo } from "./NexcordLogo";
 
 export default definePlugin({
     name: "NexcordBranding",
-    description: "Nexcord identity and development information",
+    description: "Larpcord identity and development information",
     tags: ["Utility"],
-    authors: [{ name: "Nexcord", id: 0n }],
+    authors: [{ name: "Larpcord", id: 0n }],
     required: true,
     start() {
         SettingsPlugin.customEntries.push({
             key: "nexcord_about",
-            title: "About Nexcord",
+            title: "About Larpcord",
             Component: require("./NexcordTab").default,
             Icon: NexcordLogo
         });

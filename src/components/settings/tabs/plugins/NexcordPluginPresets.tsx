@@ -44,7 +44,7 @@ export function NexcordPluginPresets() {
         try {
             await DataStore.set(KEY, next);
             setPresets(next);
-            showToast({ text: "Saved Nexcord plugin preset", variant: "success" });
+            showToast({ text: "Saved Larpcord plugin preset", variant: "success" });
         } catch {
             showToast({ text: "Failed to save plugin preset", variant: "critical" });
         }
@@ -85,7 +85,7 @@ export function NexcordPluginPresets() {
 
     return (
         <Card style={{ padding: 16, marginTop: 16, marginBottom: 18 }}>
-            <Heading tag="h4">Nexcord Plugin Presets</Heading>
+            <Heading tag="h4">Larpcord Plugin Presets</Heading>
             <p style={{ margin: "8px 0 12px", opacity: .75 }}>Save your current enabled plugins and restore them later. Required plugins cannot be removed.</p>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                 <div style={{ flex: "1 1 160px" }}>

@@ -21,9 +21,9 @@ function openEditor(userId: string, kind: "banner" | "nameplate" = "banner") {
 }
 
 export default definePlugin({
-    name: "NexcordCosmetics",
+    name: "LarpcordCosmetics",
     description: "Render local cosmetics on the profile editor, self popout and member rows without changing Nitro or account data",
-    authors: [{ name: "Nexcord", id: 0n }],
+    authors: [{ name: "Larpcord", id: 0n }],
     tags: ["Appearance", "Customisation"],
     enabledByDefault: true,
     patches: [{

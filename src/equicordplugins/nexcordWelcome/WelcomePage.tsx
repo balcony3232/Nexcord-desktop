@@ -58,7 +58,7 @@ export function WelcomePage() {
 
     return <div className="nexcord-welcome-page">
         <header className="nexcord-welcome-heading">
-            <div className="nexcord-welcome-eyebrow">Nexcord / Welcome</div>
+            <div className="nexcord-welcome-eyebrow">Larpcord / Welcome</div>
             <h1>{greeting}, {name} <span aria-hidden="true">👋</span></h1>
             <p>Welcome back. Pick up where you left off.</p>
         </header>

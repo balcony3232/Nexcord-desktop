@@ -6,7 +6,7 @@ import { createRoot, NavigationRouter, React, UserStore } from "@webpack/common"
 import type { Root } from "react-dom/client";
 import { WelcomePage } from "./WelcomePage";
 
-const log = new Logger("NexcordWelcome");
+const log = new Logger("LarpcordWelcome");
 const QUEST_ROUTE = "/quest-home";
 type Mounted = { parent:HTMLElement; node:HTMLElement; root:Root; position:string; };
 let mounted: Mounted | undefined;
@@ -127,7 +127,7 @@ function navigateOnce() {
     queueScan();
 }
 export default definePlugin({
-    name: "NexcordWelcome",
+    name: "LarpcordWelcome",
     description: "Show a Welcome page instead of Quests, and open it on Discord startup",
     authors: [{ name:"Nexcord", id:0n }],
     tags: ["Appearance","Customisation"],

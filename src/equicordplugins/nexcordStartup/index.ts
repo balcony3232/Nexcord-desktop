@@ -12,7 +12,7 @@ import definePlugin, { StartAt } from "@utils/types";
 import { React } from "@webpack/common";
 import type { ComponentType } from "react";
 
-import svgSource from "file://../../../assets/nexcord-logo.svg";
+import svgSource from "file://../../../assets/larpcord-cat.svg";
 import "./style.css";
 
 const LOGO_DATA_URI = "data:image/svg+xml;base64," + btoa(svgSource);
@@ -20,8 +20,8 @@ const cached = new WeakMap<ComponentType<any>, ComponentType<any>>();
 
 export default definePlugin({
     name: "NexcordStartup",
-    description: "Show the Nexcord logo on Discord's in-app loading screen",
-    authors: [{ name: "Nexcord", id: 0n }, { name: "Xaenny", id: 0n }],
+    description: "Show the Larpcord cat logo on Discord's in-app loading screen",
+    authors: [{ name: "Larpcord", id: 0n }, { name: "Xaenny", id: 0n }],
     tags: ["Appearance"],
     enabledByDefault: true,
     startAt: StartAt.Init,

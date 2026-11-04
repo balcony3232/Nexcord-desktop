@@ -13,19 +13,19 @@ export default function NexcordTab() {
             <div style={{ display: "flex", gap: 16, alignItems: "center", marginBottom: 22 }}>
                 <NexcordLogo width={76} height={76} />
                 <div>
-                    <h2 style={{ margin: 0 }}>Nexcord Desktop</h2>
+                    <h2 style={{ margin: 0 }}>Larpcord Desktop</h2>
                     <p style={{ margin: "6px 0", opacity: .72 }}>v0.1 development • {gitHashShort}</p>
                 </div>
             </div>
-            <h3>Welcome to Nexcord</h3>
-            <p>Nexcord is an independent, community-built Discord client modification based on Equicord and Vencord. Discord's normal appearance is preserved by default.</p>
-            <p>The plugin library is available in the Plugins tab. It includes favourites, filters, and Nexcord's own saved plugin presets.</p>
+            <h3>Welcome to Larpcord</h3>
+            <p>Larpcord is an independent, community-built Discord client modification based on Equicord and Vencord. Discord's normal appearance is preserved by default.</p>
+            <p>The plugin library is available in the Plugins tab. It includes favourites, filters, and Larpcord's own saved plugin presets.</p>
             <h3>Early development build</h3>
             <p>Custom loading facts are supplied by LoadingQuotes. Native profile cosmetics, installer automation and other features are still in development.</p>
-            <p><a href="https://github.com/balcony3232/Nexcord-desktop" target="_blank" rel="noreferrer">Nexcord source and releases</a></p>
+            <p><a href="https://github.com/balcony3232/Nexcord-desktop" target="_blank" rel="noreferrer">Larpcord source and releases</a></p>
             <h3>Upstream projects and support</h3>
-            <p>Nexcord builds on the work of <a href="https://github.com/Equicord/Equicord" target="_blank" rel="noreferrer">Equicord</a> and <a href="https://github.com/Vendicated/Vencord" target="_blank" rel="noreferrer">Vencord</a>. You can support those projects through their official sites.</p>
-            <p style={{ opacity: .65 }}>GPL-3.0-or-later. Nexcord is not affiliated with Discord, Equicord or Vencord. Original licence and copyright notices are retained in the source repository.</p>
+            <p>Larpcord builds on the work of <a href="https://github.com/Equicord/Equicord" target="_blank" rel="noreferrer">Equicord</a> and <a href="https://github.com/Vendicated/Vencord" target="_blank" rel="noreferrer">Vencord</a>. You can support those projects through their official sites.</p>
+            <p style={{ opacity: .65 }}>GPL-3.0-or-later. Larpcord is not affiliated with Discord, Equicord or Vencord. Original licence and copyright notices are retained in the source repository.</p>
         </SettingsTab>
     );
 }
