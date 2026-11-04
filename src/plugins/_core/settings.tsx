@@ -98,7 +98,7 @@ interface SettingsLayoutBuilder {
 const settings = definePluginSettings({
     settingsLocation: {
         type: OptionType.SELECT,
-        description: "Where to put the Nexcord settings section",
+        description: "Where to put the Larpcord settings section",
         options: [
             { label: "At the very top", value: "top" },
             { label: "Above Billing section", value: "aboveNitro", default: true },
@@ -192,8 +192,8 @@ export default definePlugin({
         const equicordEntries: SettingsLayoutNode[] = [
             buildEntry({
                 key: "equicord_main",
-                title: "Nexcord",
-                panelTitle: "Nexcord Settings",
+                title: "Larpcord",
+                panelTitle: "Larpcord Settings",
                 Component: VencordTab,
                 Icon: MainSettingsIcon
             }),
@@ -212,7 +212,7 @@ export default definePlugin({
             !IS_UPDATER_DISABLED && UpdaterTab && buildEntry({
                 key: "equicord_updater",
                 title: "Updater",
-                panelTitle: "Nexcord Updater",
+                panelTitle: "Larpcord Updater",
                 Component: UpdaterTab,
                 Icon: UpdaterIcon
             }),
@@ -247,7 +247,7 @@ export default definePlugin({
         const equicordSection: SettingsLayoutNode = {
             key: "equicord_section",
             type: LayoutTypes.SECTION,
-            useTitle: () => "Nexcord Settings",
+            useTitle: () => "Larpcord Settings",
             buildLayout: () => equicordEntries
         };
 
@@ -313,7 +313,7 @@ export default definePlugin({
     getInfoRows() {
         const { electronVersion, chromiumVersion, getVersionInfo } = this;
 
-        const rows = [`Nexcord ${gitHashShort}${getVersionInfo()}`, "Based on Equicord / Vencord"];
+        const rows = [`Larpcord ${gitHashShort}${getVersionInfo()}`, "Based on Equicord / Vencord"];
 
         if (electronVersion) rows.push(`Electron ${electronVersion}`);
         if (chromiumVersion) rows.push(`Chromium ${chromiumVersion}`);

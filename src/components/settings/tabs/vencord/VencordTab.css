@@ -52,3 +52,6 @@
     color: var(--text-link);
     display: inline-block;
 }
+/* Accent only our introduction card; keep Discord's native theme untouched. */
+.larpcord-intro h3 { color: #f6a4bd; }
+.larpcord-intro a { color: #f6a4bd; }

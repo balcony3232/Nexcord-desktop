@@ -192,21 +192,21 @@ function EquicordSettings() {
                     <DonateButtonComponent donated={true} />
                 </SpecialCard>
             ) : (
-                <div style={{
+                <div className="larpcord-intro" style={{
                     padding: "16px 18px",
                     borderRadius: 12,
                     border: "1px solid var(--border-subtle)",
                     background: "var(--background-surface-high)",
                     marginBottom: 20,
                 }}>
-                    <Heading tag="h3">Welcome to Nexcord</Heading>
+                    <Heading tag="h3">Welcome to Larpcord</Heading>
                     <Paragraph className={Margins.top8}>
                         Your Discord, your setup. Manage plugins, appearance and updates here.
                         Discord's original theme stays the default.
                     </Paragraph>
                     <Paragraph className={Margins.top8}>
                         Based on the open-source Equicord and Vencord projects.
-                        Their original credits and support links remain available under About Nexcord.
+                        Their original credits and support links remain available under About Larpcord.
                     </Paragraph>
                 </div>
             )}
@@ -277,7 +277,7 @@ function EquicordSettings() {
 
             <Heading className={Margins.top20}>Client Settings</Heading>
             <Paragraph className={Margins.bottom16}>
-                Configure how Nexcord behaves and integrates with Discord. These settings affect the Discord client's appearance and behavior.
+                Configure how Larpcord behaves and integrates with Discord. These settings affect the Discord client's appearance and behavior.
             </Paragraph>
             <Notice.Info className={Margins.bottom20} style={{ width: "100%" }}>
                 You can customize where this settings section appears in Discord's settings menu by configuring the{" "}
@@ -300,7 +300,7 @@ function EquicordSettings() {
     );
 }
 
-export default wrapTab(EquicordSettings, "Nexcord Settings");
+export default wrapTab(EquicordSettings, "Larpcord Settings");
 
 export function isEquicordDonor(userId: string): boolean {
     const donorBadges = BadgeAPI.getEquicordDonorBadges(userId);

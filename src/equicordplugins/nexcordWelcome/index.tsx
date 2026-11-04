@@ -129,7 +129,7 @@ function navigateOnce() {
 export default definePlugin({
     name: "LarpcordWelcome",
     description: "Show a Welcome page instead of Quests, and open it on Discord startup",
-    authors: [{ name:"Nexcord", id:0n }],
+    authors: [{ name:"Larpcord", id:0n }],
     tags: ["Appearance","Customisation"],
     enabledByDefault: true,
     startAt: StartAt.WebpackReady,

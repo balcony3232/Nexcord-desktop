@@ -14,7 +14,7 @@ function patch(file,from,to){
     write(file,s.replace(from,to));
 }
 const pkg=JSON.parse(read("package.json"));
-Object.assign(pkg,{name:"larpcord",desktopName:"larpcord",version:"0.1.0",
+Object.assign(pkg,{name:"larpcord",desktopName:"larpcord",version:"0.1.1",
     description:"Larpcord — independent Discord client based on Equibop and Equicord",
     homepage:"https://github.com/balcony3232/Nexcord-desktop",
     repository:{type:"git",url:"git+https://github.com/balcony3232/Nexcord-desktop.git"}});
@@ -76,4 +76,20 @@ const asar=join(root,"dist/equibop.asar");
 if(!existsSync(asar))throw Error("Build local equibop.asar first");
 copyFileSync(asar,join(shell,"static/dist/larpcord.asar"));
 copyFileSync(join(root,"assets/larpcord-cat.svg"),join(shell,"build/icon.svg"));
-console.log("Configured isolated Larpcord shell and bundled own cosmetics build.");
+// Preserve the upstream custom-splash feature, but use our cat as its default asset.
+patch("src/main/userAssets.ts", 'splash: "tray.png",', 'splash: "icon.png",');
+// The default cat mark should not rotate like the old spinner.
+patch("src/main/splash.ts", 'animation: spin 2s linear infinite;', 'animation: none;');
+// Shell-managed settings also need native Larpcord labels, not old Equibop text.
+patch("src/renderer/index.ts", 'title: "Equibop Settings"', 'title: "Larpcord Desktop Settings"');
+patch("src/renderer/index.ts", 'label: "Equibop Settings"', 'label: "Larpcord Desktop Settings"');
+for (const file of [
+    "src/renderer/components/settings/Settings.tsx",
+    "src/renderer/components/settings/OutdatedVesktopWarning.tsx"
+]) write(file, read(file).replaceAll("Equibop", "Larpcord"));
+// Use a soft pink accent in the independent shell's setup flow.
+patch("static/views/first-launch.html", 'background: red;', 'background: #43303b;');
+patch("static/views/first-launch.html", 'background: green;', 'background: #f58eaf;\\n            color: #2b1c2c;'.replace("\\\\n", "\\n"));
+patch("static/views/common.css", '--link: light-dark(#006ce7, #00a8fc);', '--link: light-dark(#ad3762, #f6a4bd);');
+patch("static/views/common.css", '--link-hover: light-dark(#005bb5, #0086c3);', '--link-hover: light-dark(#89284f, #ffc0d4);');
+console.log("Configured isolated Larpcord v0.1.1 shell with cat splash and branded settings.");
