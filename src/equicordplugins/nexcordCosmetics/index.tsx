@@ -12,6 +12,7 @@ import { LocalCosmeticsModal } from "./LocalCosmeticsModal";
 import { getLocalBanner, loadCosmetics } from "./storage";
 import { startNativeProfileIntegration, stopNativeProfileIntegration } from "./NativeProfileIntegration";
 import { loadShopSelections } from "./ShopCatalog";
+import { loadProfileStyles } from "./LocalProfileStyle";
 import { startLocalCosmeticSurfaces, stopLocalCosmeticSurfaces } from "./LocalCosmeticSurfaces";
 
 const logger = new Logger("NexcordCosmetics");
@@ -72,6 +73,7 @@ export default definePlugin({
         startNativeProfileIntegration();
         startLocalCosmeticSurfaces();
         void loadShopSelections().catch(error => logger.error("Failed loading local shop selections", error));
+        void loadProfileStyles().catch(error => logger.error("Failed loading local profile style", error));
         void loadCosmetics().catch(error => logger.error("Failed loading Nexcord cosmetics", error));
     },
     stop() {
