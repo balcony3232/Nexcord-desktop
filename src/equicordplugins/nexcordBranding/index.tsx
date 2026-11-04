@@ -50,12 +50,17 @@ export const settings = definePluginSettings({
         default: 38,
         markers: [0, 25, 50, 75, 100],
         stickToMarkers: false
+    },
+    unifiedSurfaces: {
+        type: OptionType.BOOLEAN,
+        description: "Tint chat, sidebars, member lists, message composer, settings and popouts together in Full Larpcord mode.",
+        default: true
     }
 });
 
-const accentChanged = () => applyAccent(settings.store.accentColor, settings.store.mode as AppearanceMode, settings.store.glowIntensity, settings.store.tintStrength);
+const accentChanged = () => applyAccent(settings.store.accentColor, settings.store.mode as AppearanceMode, settings.store.glowIntensity, settings.store.tintStrength, settings.store.unifiedSurfaces);
 const accentKey = "plugins.NexcordBranding.accentColor";
-const appearanceKeys = ["plugins.NexcordBranding.mode", "plugins.NexcordBranding.glowIntensity", "plugins.NexcordBranding.tintStrength"] as const;
+const appearanceKeys = ["plugins.NexcordBranding.mode", "plugins.NexcordBranding.glowIntensity", "plugins.NexcordBranding.tintStrength", "plugins.NexcordBranding.unifiedSurfaces"] as const;
 
 export default definePlugin({
     name: "NexcordBranding",

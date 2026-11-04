@@ -72,3 +72,8 @@
 .larpcord-preview-original .larpcord-preview-avatar {background:#303036;color:white;}
 .larpcord-preview-full {background:var(--larpcord-surface,#24242a);box-shadow:var(--larpcord-glow,none);}
 @media(max-width:680px){.larpcord-mode-options{grid-template-columns:1fr;}.larpcord-mode-card{min-height:45px;}}
+
+/* v0.1.4 unified preview reflects the rest of Discord surfaces. */
+.larpcord-preview-full.larpcord-preview-unified{background:var(--larpcord-chat,#24242a);border-color:var(--larpcord-accent-border);box-shadow:var(--larpcord-glow);}
+.larpcord-preview-full.larpcord-preview-unified .larpcord-preview-heading{background:var(--larpcord-sidebar,transparent);border-radius:7px;padding:8px;}
+.larpcord-preview-full.larpcord-preview-unified .larpcord-preview-message{background:var(--larpcord-chat,#24242a);border-radius:8px;padding:8px;}

@@ -19,7 +19,7 @@ const PRESETS = [
 ] as const;
 
 export function AccentTab() {
-    const saved = settings.use(["accentColor", "mode", "glowIntensity", "tintStrength"]);
+    const saved = settings.use(["accentColor", "mode", "glowIntensity", "tintStrength", "unifiedSurfaces"]);
     const mode = saved.mode ?? "full";
     const colour = normaliseHex(saved.accentColor) ?? DEFAULT_ACCENT;
     const [draft, setDraft] = React.useState(colour);
@@ -97,6 +97,13 @@ export function AccentTab() {
                             {!valid && <span className="larpcord-appearance-error">Use six hexadecimal digits, e.g. #F58EAF.</span>}
                         </div>
 
+                        <label className="larpcord-appearance-toggle">
+                            <input type="checkbox" checked={saved.unifiedSurfaces} disabled={mode !== "full"}
+                                onChange={event => settings.store.unifiedSurfaces = event.currentTarget.checked} />
+                            <span><strong>Colour the entire app</strong>
+                                <small>Give the chat background, server bar, channels, member list, message box, settings and popouts a unified version of your accent colour. Keeps text readable.</small>
+                            </span>
+                        </label>
                         <div className="larpcord-appearance-sliders">
                             <label htmlFor="larpcord-tint-range">
                                 Surface tint <strong>{saved.tintStrength}%</strong>
@@ -114,8 +121,8 @@ export function AccentTab() {
                         </div>
                         <div className="larpcord-appearance-footer">
                             <span>Your colours stay on this device, in Larpcord's plugin settings.</span>
-                            <Button variant="secondary" disabled={colour === DEFAULT_ACCENT && mode === "full" && saved.glowIntensity === 28 && saved.tintStrength === 38}
-                                onClick={() => { chooseColour(DEFAULT_ACCENT); settings.store.mode = "full"; settings.store.glowIntensity = 28; settings.store.tintStrength = 38; }}>
+                            <Button variant="secondary" disabled={colour === DEFAULT_ACCENT && mode === "full" && saved.glowIntensity === 28 && saved.tintStrength === 38 && saved.unifiedSurfaces}
+                                onClick={() => { chooseColour(DEFAULT_ACCENT); settings.store.mode = "full"; settings.store.glowIntensity = 28; settings.store.tintStrength = 38; settings.store.unifiedSurfaces = true; }}>
                                 Reset to default
                             </Button>
                         </div>
@@ -123,7 +130,7 @@ export function AccentTab() {
 
                     <section className="larpcord-appearance-preview" aria-label="Live accent preview">
                         <span className="larpcord-appearance-eyebrow">LIVE PREVIEW · {mode === "full" ? "FULL LARPCORD" : mode.toUpperCase()}</span>
-                        <div className={"larpcord-preview-shell larpcord-preview-" + mode}>
+                        <div className={"larpcord-preview-shell larpcord-preview-" + mode + (saved.unifiedSurfaces ? " larpcord-preview-unified" : "")}>
                             <div className="larpcord-preview-heading">
                                 <NexcordLogo width={36} height={36} />
                                 <div>
@@ -139,7 +146,7 @@ export function AccentTab() {
                             <div className="larpcord-preview-tag">✦ Accent ready</div>
                             <div className="larpcord-preview-action">{mode === "original" ? "Original Discord" : mode === "accent" ? "Accent mode" : "Full Larpcord"}</div>
                         </div>
-                        <p>The cat logo stays pink. Original leaves Discord unchanged; Accent recolours controls; Full adds coloured surfaces and glow.</p>
+                        <p>The cat logo stays pink. Original leaves Discord unchanged; Accent recolours controls; Full unifies chat, sidebars and settings under your accent while retaining readable contrast.</p>
                     </section>
                 </div>
             </div>
