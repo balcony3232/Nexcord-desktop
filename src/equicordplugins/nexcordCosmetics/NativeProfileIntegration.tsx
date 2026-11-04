@@ -12,6 +12,8 @@ import { createRoot, React, ReactDOM, showToast, UserStore } from "@webpack/comm
 import type { Root } from "react-dom/client";
 
 import { applyAsset, getAppearance, importAsset, listAssets, loadCosmetics, subscribe } from "./storage";
+import { DEFAULT_PROFILE_STYLE, getLocalProfileStyle, loadProfileStyles, setLocalProfileStyle, subscribeProfileStyles } from "./LocalProfileStyle";
+import type { LocalBadge } from "./LocalProfileStyle";
 import type { CosmeticKind } from "./storage";
 import type { ShopKind } from "./ShopCatalog";
 import { ShopGallery } from "./ShopGallery";
@@ -21,7 +23,7 @@ import { scanNativeEffectTile, stopNativeEffectTile } from "./NativeEffectTile";
 import { scanNativeEffectCard, stopNativeEffectCard } from "./EffectCardOverlay";
 
 type Surface = "sidebar" | "picker";
-type NativeKind = CosmeticKind | ShopKind;
+type NativeKind = CosmeticKind | ShopKind | "theme";
 interface Slot {
     kind: NativeKind;
     surface: Surface;
@@ -225,6 +227,14 @@ function scan() {
         }
         if (!mountedNameplate) stopNativeNameplate();
 
+        // Add local-only profile colours and badge previews beside Discord's
+        // Display Name Style heading. Never patch its native save flow.
+        for (const heading of labels.get("Display Name Style") ?? []) {
+            if (!getProfileRail(heading)) continue;
+            addTrigger(heading, "theme", "sidebar");
+            break;
+        }
+
         // Add a compact My Custom selector in the *real* Change Nameplate
         // dialog, next to "Your Nameplates", without moving Discord's grid.
         if (labels.has(NATIVE_NAMEPLATE_TITLE)) {
@@ -291,11 +301,26 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
     const [position, setPosition] = React.useState({ left: 16, top: 16 });
     const [, refresh] = React.useReducer((n: number) => n + 1, 0);
     React.useEffect(() => subscribe(refresh), []);
+    React.useEffect(() => subscribeProfileStyles(refresh), []);
+    React.useEffect(() => { void loadProfileStyles().then(refresh).catch(error => setError(String(error))); }, []);
 
     // The catalogue deserves a readable, independent panel beside Discord's
     // profile editor, rather than a narrow menu overlapping its left rail.
     const width = 470;
-    const label = kind === "decoration" ? "avatar decoration" : kind === "effect" ? "profile effect" : kind;
+    const label = kind === "decoration" ? "avatar decoration" : kind === "effect" ? "profile effect" : kind === "theme" ? "profile theme" : kind;
+    const profileStyle = userId ? getLocalProfileStyle(userId) : DEFAULT_PROFILE_STYLE;
+    async function saveProfileStyle(changes: Partial<typeof profileStyle>) {
+        if (!userId || busy) return;
+        setBusy(true);
+        setError("");
+        try {
+            await setLocalProfileStyle(userId, changes);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : String(err));
+        } finally {
+            setBusy(false);
+        }
+    }
     const customKind = kind === "banner" || kind === "nameplate";
     const assets = customKind ? listAssets(kind as CosmeticKind) : [];
     const selected = customKind && userId ? getAppearance(userId)[kind as CosmeticKind] : undefined;
@@ -398,7 +423,8 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
                     <div className="nexcord-native-popover-title">
                         <strong>{kind === "banner" ? "Local Banners" :
                             kind === "nameplate" ? "Local Nameplates" :
-                            kind === "decoration" ? "Avatar Decorations" : "Profile Effects & Frames"}</strong>
+                            kind === "decoration" ? "Avatar Decorations" :
+                            kind === "theme" ? "Local Profile Theme" : "Profile Effects & Frames"}</strong>
                         <span>Only you</span>
                     </div>
                     {customKind && kind !== "banner" && (
@@ -442,7 +468,7 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
                                 }}/>
                         </>
                     )}
-                    {tab === "shop" && kind !== "banner" && userId && (
+                    {tab === "shop" && kind !== "banner" && kind !== "theme" && userId && (
                         <ShopGallery
                             kind={kind === "effect" ? "effect" : kind as ShopKind}
                             allowFrames={kind === "effect"}
@@ -459,6 +485,51 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
                         Your local nameplate appears in the editor and on your
                         popout and member-list row (only you can see it).
                     </p>}
+                    {kind === "theme" && userId && (
+                        <div className="larpcord-local-theme-picker">
+                            <p>These colours and badges appear only on your local self-profile preview. They do not grant Nitro, official badges or Discord cosmetics.</p>
+                            <div className="larpcord-local-theme-sample"
+                                style={{
+                                    borderColor: profileStyle.accent,
+                                    background: profileStyle.background
+                                }}>
+                                <span style={{ color: profileStyle.accent }}>✦ Profile preview</span>
+                                <strong>{UserStore.getCurrentUser()?.globalName || UserStore.getCurrentUser()?.username || "You"}</strong>
+                                {profileStyle.badge !== "none" && <small>✦ {profileStyle.badge.toUpperCase()} · LOCAL</small>}
+                            </div>
+                            <label className="larpcord-local-theme-row">
+                                <span>Enable local profile theme</span>
+                                <input type="checkbox" checked={profileStyle.enabled} disabled={busy}
+                                    onChange={e => void saveProfileStyle({ enabled: e.currentTarget.checked })}/>
+                            </label>
+                            <label className="larpcord-local-theme-row">
+                                <span>Accent colour</span>
+                                <input type="color" value={profileStyle.accent} disabled={busy}
+                                    onChange={e => void saveProfileStyle({ accent: e.currentTarget.value, enabled: true })}/>
+                            </label>
+                            <label className="larpcord-local-theme-row">
+                                <span>Profile background</span>
+                                <input type="color" value={profileStyle.background} disabled={busy}
+                                    onChange={e => void saveProfileStyle({ background: e.currentTarget.value, enabled: true })}/>
+                            </label>
+                            <span className="larpcord-local-theme-label">Local badge</span>
+                            <div className="larpcord-local-badge-presets" role="group" aria-label="Local badge previews">
+                                {([
+                                    ["none", "None"],["star", "Star"],["heart", "Heart"],
+                                    ["moon", "Moon"],["cat", "Cat"]
+                                ] as const).map(([badge, title]) => (
+                                    <button type="button" key={badge} disabled={busy}
+                                        aria-pressed={profileStyle.badge === badge}
+                                        className={profileStyle.badge === badge ? "is-selected" : ""}
+                                        onClick={() => void saveProfileStyle({ badge: badge as LocalBadge })}>
+                                        {title}
+                                    </button>
+                                ))}
+                            </div>
+                            <button type="button" className="larpcord-local-theme-reset" disabled={busy}
+                                onClick={() => void saveProfileStyle(DEFAULT_PROFILE_STYLE)}>Reset local profile</button>
+                        </div>
+                    )}
                     {error && <p className="nexcord-native-popover-error" role="alert">{error}</p>}
                 </div>, document.body
             )}
