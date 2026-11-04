@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+<title>Larpcord cat</title>
+<rect width="256" height="256" rx="53" fill="#1d1622"/>
+<path d="M49 111 57 46q2-10 13-4l42 29q16-4 32 0l42-29q11-6 13 4l8 65q20 27 20 55 0 68-99 68T29 166q0-28 20-55Z" fill="#fff2f5" stroke="#f58eaf" stroke-width="11" stroke-linejoin="round"/>
+<path d="m66 63 25 19-34 29zM190 63l-25 19 34 29z" fill="#ffc1d3"/>
+<path d="M108 81v25M128 78v27M148 81v25" fill="none" stroke="#ffacc8" stroke-width="8" stroke-linecap="round"/>
+<path d="m72 134 28 20-28 20M184 134l-28 20 28 20" fill="none" stroke="#2b1c2c" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M111 159c-2 18 13 22 17 5 5 17 19 13 17-5" fill="none" stroke="#2b1c2c" stroke-width="8.5" stroke-linecap="round"/>
+<path d="M63 188q6-6 14-7M193 188q-6-6-14-7" stroke="#ff9dbf" stroke-width="9" stroke-linecap="round" fill="none"/>
+<path d="M19 139 42 147M17 162 39 164M237 139 214 147M239 162 217 164" fill="none" stroke="#ffc6d9" stroke-width="8" stroke-linecap="round"/>
+</svg>
