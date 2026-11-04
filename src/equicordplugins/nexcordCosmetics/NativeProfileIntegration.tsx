@@ -14,6 +14,7 @@ import type { Root } from "react-dom/client";
 import { applyAsset, getAppearance, importAsset, listAssets, loadCosmetics, subscribe } from "./storage";
 import { DEFAULT_PROFILE_STYLE, getLocalProfileStyle, loadProfileStyles, setLocalProfileStyle, subscribeProfileStyles } from "./LocalProfileStyle";
 import type { LocalBadge } from "./LocalProfileStyle";
+import { BADGE_CATALOG, badgeById } from "./BadgeCatalog";
 import type { CosmeticKind } from "./storage";
 import type { ShopKind } from "./ShopCatalog";
 import { ShopGallery } from "./ShopGallery";
@@ -24,7 +25,7 @@ import { scanNativeDecorationTile, stopNativeDecorationTile } from "./NativeDeco
 import { scanNativeEffectCard, stopNativeEffectCard } from "./EffectCardOverlay";
 
 type Surface = "sidebar" | "picker";
-type NativeKind = CosmeticKind | ShopKind | "theme";
+type NativeKind = CosmeticKind | ShopKind | "theme" | "badges";
 interface Slot {
     kind: NativeKind;
     surface: Surface;
@@ -316,6 +317,9 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
     const [error, setError] = React.useState("");
     const [tab, setTab] = React.useState<"custom" | "shop">(kind === "banner" || kind === "nameplate" ? "custom" : "shop");
     const [position, setPosition] = React.useState({ left: 16, top: 16 });
+    const [browseKind, setBrowseKind] = React.useState<NativeKind>(kind);
+    const [badgeSearch, setBadgeSearch] = React.useState("");
+    const [identityDraft, setIdentityDraft] = React.useState({displayName:"",username:""});
     const [, refresh] = React.useReducer((n: number) => n + 1, 0);
     React.useEffect(() => subscribe(refresh), []);
     React.useEffect(() => subscribeProfileStyles(refresh), []);
@@ -326,6 +330,10 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
     const width = 470;
     const label = kind === "decoration" ? "avatar decoration" : kind === "effect" ? "profile effect" : kind === "theme" ? "profile theme" : kind;
     const profileStyle = userId ? getLocalProfileStyle(userId) : DEFAULT_PROFILE_STYLE;
+    React.useEffect(() => setIdentityDraft({
+        displayName: profileStyle.localDisplayName,
+        username: profileStyle.localUsername
+    }), [userId, profileStyle.localDisplayName, profileStyle.localUsername]);
     async function saveProfileStyle(changes: Partial<typeof profileStyle>) {
         if (!userId || busy) return;
         setBusy(true);
@@ -338,9 +346,20 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
             setBusy(false);
         }
     }
-    const customKind = kind === "banner" || kind === "nameplate";
-    const assets = customKind ? listAssets(kind as CosmeticKind) : [];
-    const selected = customKind && userId ? getAppearance(userId)[kind as CosmeticKind] : undefined;
+    const customKind = browseKind === "banner" || browseKind === "nameplate";
+    const assets = customKind ? listAssets(browseKind as CosmeticKind) : [];
+    const selected = customKind && userId ? getAppearance(userId)[browseKind as CosmeticKind] : undefined;
+    const activeBadges = profileStyle.badges;
+    const badgeMatches = BADGE_CATALOG.filter(item =>
+        (item.name + " " + item.category).toLowerCase().includes(badgeSearch.trim().toLowerCase()));
+    async function toggleBadge(id: string) {
+        if (!activeBadges.includes(id) && activeBadges.length >= 6) {
+            setError("Select up to six local badge previews.");
+            return;
+        }
+        await saveProfileStyle({badges: activeBadges.includes(id)
+            ? activeBadges.filter(x => x !== id) : [...activeBadges, id]});
+    }
 
     React.useEffect(() => {
         if (!open) return;
@@ -387,8 +406,8 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
         setBusy(true);
         setError("");
         try {
-            await applyAsset(userId, kind as CosmeticKind, id);
-            if (kind === "nameplate") await applyShopItem(userId, "nameplate", undefined);
+            await applyAsset(userId, browseKind as CosmeticKind, id);
+            if (browseKind === "nameplate") await applyShopItem(userId, "nameplate", undefined);
             showToast({ text: "Local " + label + " applied — only you can see it", variant: "success" });
             setOpen(false);
         } catch (err) {
@@ -403,9 +422,9 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
         setBusy(true);
         setError("");
         try {
-            const asset = await importAsset(kind as CosmeticKind, file);
-            await applyAsset(userId, kind as CosmeticKind, asset.id);
-            if (kind === "nameplate") await applyShopItem(userId, "nameplate", undefined);
+            const asset = await importAsset(browseKind as CosmeticKind, file);
+            await applyAsset(userId, browseKind as CosmeticKind, asset.id);
+            if (browseKind === "nameplate") await applyShopItem(userId, "nameplate", undefined);
             showToast({ text: "Custom " + label + " imported and applied locally", variant: "success" });
             setOpen(false);
         } catch (err) {
@@ -438,13 +457,29 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
                     onClick={event => event.stopPropagation()}
                 >
                     <div className="nexcord-native-popover-title">
-                        <strong>{kind === "banner" ? "Local Banners" :
-                            kind === "nameplate" ? "Local Nameplates" :
-                            kind === "decoration" ? "Avatar Decorations" :
-                            kind === "theme" ? "Local Profile Theme" : "Profile Effects & Frames"}</strong>
+                        <strong>{browseKind === "banner" ? "Local Banners" :
+                            browseKind === "nameplate" ? "Local Nameplates" :
+                            browseKind === "decoration" ? "Avatar Decorations" :
+                            browseKind === "effect" ? "Profile Effects" :
+                            browseKind === "frame" ? "Profile Frames" :
+                            browseKind === "badges" ? "Badge Catalogue" : "Local Profile Identity"}</strong>
                         <span>Only you</span>
                     </div>
-                    {customKind && kind !== "banner" && (
+                    <div className="larpcord-cosmetics-kind-tabs" role="tablist" aria-label="Browse local cosmetics">
+                        {([
+                            ["banner","Banners"],["nameplate","Nameplates"],["decoration","Decorations"],
+                            ["effect","Effects"],["frame","Frames"],["badges","Badges"],["theme","Identity"]
+                        ] as const).map(([value,title]) => (
+                            <button type="button" role="tab" key={value} aria-selected={browseKind === value}
+                                className={browseKind === value ? "is-active" : ""}
+                                onClick={() => {
+                                    setBrowseKind(value);
+                                    setTab(value === "banner" || value === "nameplate" ? "custom" : "shop");
+                                    setError("");
+                                }}>{title}</button>
+                        ))}
+                    </div>
+                    {customKind && browseKind !== "banner" && (
                         <div className="nexcord-native-tabs">
                             <button type="button" className={tab === "custom" ? "nexcord-native-tab-active" : ""}
                                 onClick={() => setTab("custom")}>My Images</button>
@@ -485,24 +520,24 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
                                 }}/>
                         </>
                     )}
-                    {tab === "shop" && kind !== "banner" && kind !== "theme" && userId && (
+                    {tab === "shop" && browseKind !== "banner" && browseKind !== "theme" && browseKind !== "badges" && userId && (
                         <ShopGallery
-                            kind={kind === "effect" ? "effect" : kind as ShopKind}
-                            allowFrames={kind === "effect"}
+                            kind={browseKind as ShopKind}
+                            allowFrames={false}
                             userId={userId}
                         />
                     )}
-                    {tab === "custom" && (
+                    {tab === "custom" && customKind && (
                         <p className="nexcord-native-popover-note">
                             Local-only selections apply immediately. Discord's original
                             Save and Apply controls are unchanged.
                         </p>
                     )}
-                    {kind === "nameplate" && <p className="nexcord-native-popover-note">
+                    {browseKind === "nameplate" && <p className="nexcord-native-popover-note">
                         Your local nameplate appears in the editor and on your
                         popout and member-list row (only you can see it).
                     </p>}
-                    {kind === "theme" && userId && (
+                    {browseKind === "theme" && userId && (
                         <div className="larpcord-local-theme-picker">
                             <p>These colours and badges appear only on your local self-profile preview. They do not grant Nitro, official badges or Discord cosmetics.</p>
                             <div className="larpcord-local-theme-sample"
@@ -511,8 +546,10 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
                                     background: profileStyle.background
                                 }}>
                                 <span style={{ color: profileStyle.accent }}>✦ Profile preview</span>
-                                <strong>{UserStore.getCurrentUser()?.globalName || UserStore.getCurrentUser()?.username || "You"}</strong>
-                                {profileStyle.badge !== "none" && <small>✦ {profileStyle.badge.toUpperCase()} · LOCAL</small>}
+                                <strong>{profileStyle.localDisplayName || UserStore.getCurrentUser()?.globalName || UserStore.getCurrentUser()?.username || "You"}</strong>
+                                <small>@{profileStyle.localUsername || UserStore.getCurrentUser()?.username || "you"}</small>
+                                {(profileStyle.badges.length > 0 || profileStyle.badge !== "none") &&
+                                    <small>✦ {(profileStyle.badges.map(id => badgeById(id)?.name).filter(Boolean).join(", ") || profileStyle.badge).toUpperCase()} · LOCAL</small>}
                             </div>
                             <label className="larpcord-local-theme-row">
                                 <span>Enable local profile theme</span>
@@ -529,7 +566,23 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
                                 <input type="color" value={profileStyle.background} disabled={busy}
                                     onChange={e => void saveProfileStyle({ background: e.currentTarget.value, enabled: true })}/>
                             </label>
-                            <span className="larpcord-local-theme-label">Local badge</span>
+                            <label className="larpcord-local-theme-row">
+                                <span>Local display name</span>
+                                <input type="text" maxLength={32} value={identityDraft.displayName} placeholder="Use real display name"
+                                    onChange={e => setIdentityDraft(old => ({...old,displayName:e.currentTarget.value}))}/>
+                            </label>
+                            <label className="larpcord-local-theme-row">
+                                <span>Local username</span>
+                                <input type="text" maxLength={32} value={identityDraft.username} placeholder="Use real username"
+                                    onChange={e => setIdentityDraft(old => ({...old,username:e.currentTarget.value}))}/>
+                            </label>
+                            <button type="button" className="larpcord-local-theme-reset" disabled={busy}
+                                onClick={() => void saveProfileStyle({
+                                    localDisplayName: identityDraft.displayName,
+                                    localUsername: identityDraft.username,enabled:true
+                                })}>Apply Local Names</button>
+                            <p>Local names only affect your on-device preview; messages and your actual Discord identity stay unchanged.</p>
+                            <span className="larpcord-local-theme-label">Extra decorative symbols</span>
                             <div className="larpcord-local-badge-presets" role="group" aria-label="Local badge previews">
                                 {([
                                     ["none", "None"],["star", "Star"],["heart", "Heart"],
@@ -547,7 +600,31 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
                                 onClick={() => void saveProfileStyle(DEFAULT_PROFILE_STYLE)}>Reset local profile</button>
                         </div>
                     )}
-                    {error && <p className="nexcord-native-popover-error" role="alert">{error}</p>}
+                    {browseKind === "badges" && (
+                        <div className="larpcord-badges-browser">
+                            <p>Select up to six local Discord-style badge previews. This does not unlock official badges.</p>
+                            <input type="search" aria-label="Search available badge previews"
+                                placeholder="Search badges…" value={badgeSearch}
+                                onChange={e => setBadgeSearch(e.currentTarget.value)}/>
+                            <div className="larpcord-badge-gallery">
+                                {badgeMatches.map(item => (
+                                    <button type="button" key={item.id} disabled={busy}
+                                        aria-pressed={activeBadges.includes(item.id)}
+                                        onClick={() => void toggleBadge(item.id)}>
+                                        {item.image ? <img loading="lazy" src={item.image} alt=""/> : <span>{item.symbol}</span>}
+                                        <strong>{item.name}</strong><small>{item.category}</small>
+                                        {activeBadges.includes(item.id) && <em>✓</em>}
+                                    </button>
+                                ))}
+                            </div>
+                            <small>{activeBadges.length}/6 selected · Local preview only</small>
+                            <button type="button" className="larpcord-local-theme-reset" disabled={busy || !activeBadges.length}
+                                onClick={() => void saveProfileStyle({badges:[],badge:"none"})}>Clear Local Badges</button>
+                            <p>Classic badge illustrations: <a href="https://github.com/merlinfuchs/discord-badges"
+                                target="_blank" rel="noreferrer">Merlin's MIT-licensed badge collection</a>.</p>
+                        </div>
+                    )}
+                    {error && <p className="nexcord-native-popover-error" role="alert">{error}</p>
                 </div>, document.body
             )}
         </>
