@@ -14,7 +14,7 @@ function patch(file,from,to){
     write(file,s.replace(from,to));
 }
 const pkg=JSON.parse(read("package.json"));
-Object.assign(pkg,{name:"larpcord",desktopName:"larpcord",version:"0.1.1",
+Object.assign(pkg,{name:"larpcord",desktopName:"larpcord",version:"0.1.2",
     description:"Larpcord — independent Discord client based on Equibop and Equicord",
     homepage:"https://github.com/balcony3232/Nexcord-desktop",
     repository:{type:"git",url:"git+https://github.com/balcony3232/Nexcord-desktop.git"}});
@@ -105,4 +105,4 @@ patch("static/views/first-launch.html", 'background: red;', 'background: #43303b
 patch("static/views/first-launch.html", 'background: green;', 'background: #f58eaf; color: #2b1c2c;');
 patch("static/views/common.css", '--link: light-dark(#006ce7, #00a8fc);', '--link: light-dark(#ad3762, #f6a4bd);');
 patch("static/views/common.css", '--link-hover: light-dark(#005bb5, #0086c3);', '--link-hover: light-dark(#89284f, #ffc0d4);');
-console.log("Configured isolated Larpcord v0.1.1 shell with cat splash and branded settings.");
+console.log("Configured isolated Larpcord v0.1.2 shell with cat splash and branded settings.");

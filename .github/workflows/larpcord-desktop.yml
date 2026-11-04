@@ -98,7 +98,7 @@ jobs:
             .larpcord-shell/dist/latest.yml
           if-no-files-found: error
           retention-days: 14
-      - name: Publish v0.1.1 prerelease and auto-update metadata
+      - name: Publish versioned prerelease and auto-update metadata
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}

@@ -196,7 +196,8 @@ function EquicordSettings() {
                     padding: "16px 18px",
                     borderRadius: 12,
                     border: "1px solid var(--border-subtle)",
-                    background: "var(--background-surface-high)",
+                    background: "linear-gradient(105deg, var(--larpcord-accent-wash,rgba(245,142,175,.09)), var(--background-surface-high) 85%)",
+                    borderColor: "var(--larpcord-accent-border, var(--border-subtle))",
                     marginBottom: 20,
                 }}>
                     <Heading tag="h3">Welcome to Larpcord</Heading>

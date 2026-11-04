@@ -1,0 +1,54 @@
+/* Soft, contained Larpcord design tokens. Does not replace Discord's layout. */
+:root {
+  --larpcord-accent: #F58EAF;
+  --larpcord-accent-rgb: 245, 142, 175;
+  --larpcord-accent-ink: #241822;
+  --larpcord-accent-hover: #DF809F;
+  --larpcord-accent-wash: rgba(245,142,175,.09);
+  --larpcord-accent-border: rgba(245,142,175,.28);
+}
+
+.larpcord-appearance-page {max-width:1060px;padding:10px 0 30px;color:var(--text-normal,#f2f3f5);}
+.larpcord-appearance-hero {display:flex;gap:18px;align-items:center;padding:22px 24px;margin-bottom:22px;border:1px solid var(--larpcord-accent-border);border-radius:16px;background:linear-gradient(105deg,var(--larpcord-accent-wash),var(--background-surface-high,#242429) 85%);}
+.larpcord-appearance-hero h2 {font-size:26px;letter-spacing:-.03em;margin:4px 0 6px;}
+.larpcord-appearance-hero p,.larpcord-appearance-panel p,.larpcord-appearance-preview>p {font-size:13px;line-height:1.5;color:var(--text-muted,#a2a5af);margin:0;}
+.larpcord-appearance-eyebrow {font-size:11px;letter-spacing:.13em;font-weight:750;color:var(--larpcord-accent);}
+.larpcord-appearance-grid {display:grid;grid-template-columns:minmax(310px,1.5fr) minmax(245px,1fr);gap:18px;align-items:start;}
+.larpcord-appearance-panel,.larpcord-appearance-preview {background:var(--background-surface-high,#25252b);border:1px solid var(--border-subtle,#393941);border-radius:14px;padding:22px;}
+.larpcord-appearance-panel h3 {font-size:17px;margin:0 0 7px;}
+.larpcord-appearance-swatches {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin:22px 0 24px;}
+.larpcord-swatch {appearance:none;cursor:pointer;background:var(--background-base-low,#1b1b20);border:1px solid var(--border-subtle,#42424a);border-radius:12px;min-width:0;display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px 6px;color:inherit;}
+.larpcord-swatch:hover {border-color:var(--larpcord-accent);}
+.larpcord-swatch:focus-visible,.larpcord-appearance-custom input:focus-visible,.larpcord-appearance-toggle input:focus-visible {outline:2px solid var(--larpcord-accent);outline-offset:3px;}
+.larpcord-swatch.is-selected {border:2px solid var(--larpcord-accent);padding:9px 5px;background:var(--larpcord-accent-wash);}
+.larpcord-swatch span {width:32px;height:32px;border-radius:50%;box-shadow:0 0 0 2px rgba(255,255,255,.12);}
+.larpcord-swatch small {font-size:11px;}
+.larpcord-appearance-custom {padding-top:17px;border-top:1px solid var(--border-subtle,#404047);}
+.larpcord-appearance-custom>label {display:block;font-weight:650;font-size:13px;margin-bottom:10px;}
+.larpcord-appearance-custom-controls {display:flex;align-items:center;gap:9px;}
+.larpcord-appearance-custom-controls input[type=color] {width:45px;height:40px;min-width:45px;cursor:pointer;border:1px solid var(--border-subtle,#42424a);border-radius:9px;background:transparent;padding:3px;}
+.larpcord-hex-input {min-width:0;max-width:170px;flex:1;padding:10px 12px;border:1px solid var(--border-subtle,#42424a);border-radius:8px;background:var(--input-background,var(--background-base-low,#18191c));color:var(--text-normal,#eee);font:inherit;font-size:13px;}
+.larpcord-hex-input[aria-invalid=true] {border-color:var(--text-danger,#f77);}
+.larpcord-appearance-error {display:block;margin-top:8px;color:var(--text-danger,#f77);font-size:12px;}
+.larpcord-appearance-toggle {margin-top:23px;padding:16px 0;border-top:1px solid var(--border-subtle,#42424a);border-bottom:1px solid var(--border-subtle,#42424a);display:flex;gap:12px;align-items:flex-start;cursor:pointer;}
+.larpcord-appearance-toggle input {margin-top:3px;accent-color:var(--larpcord-accent);width:17px;height:17px;cursor:pointer;}
+.larpcord-appearance-toggle strong,.larpcord-appearance-toggle small {display:block;}
+.larpcord-appearance-toggle strong {font-size:13px;}
+.larpcord-appearance-toggle small {font-size:12px;line-height:1.45;color:var(--text-muted,#aaa);margin-top:4px;}
+.larpcord-appearance-footer {margin-top:16px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;}
+.larpcord-appearance-footer span {font-size:11px;line-height:1.35;color:var(--text-muted,#aaa);max-width:280px;}
+.larpcord-appearance-preview {position:relative;overflow:hidden;border-color:var(--larpcord-accent-border);}
+.larpcord-preview-shell {border-radius:12px;background:var(--background-base-low,#18181c);padding:15px;margin-top:17px;border:1px solid var(--larpcord-accent-border);}
+.larpcord-preview-heading {display:flex;align-items:center;gap:10px;padding-bottom:14px;border-bottom:1px solid var(--border-subtle,#404049);}
+.larpcord-preview-heading div {display:flex;flex:1;flex-direction:column;gap:3px;}
+.larpcord-preview-heading strong {font-size:13px;}
+.larpcord-preview-heading small {color:var(--text-muted,#aaa);font-size:11px;}
+.larpcord-preview-online {width:9px;height:9px;border-radius:50%;background:#52c69b;}
+.larpcord-preview-message {display:flex;align-items:center;gap:10px;margin-top:15px;}
+.larpcord-preview-avatar {display:grid;place-items:center;flex:none;border-radius:50%;width:32px;height:32px;background:var(--larpcord-accent-wash);color:var(--larpcord-accent);font-weight:800;}
+.larpcord-preview-message strong {font-size:12px;}
+.larpcord-preview-message p {font-size:11px;margin:5px 0 0;color:var(--text-muted,#aaa);}
+.larpcord-preview-tag {color:var(--larpcord-accent);font-weight:700;font-size:11px;padding:15px 0;}
+.larpcord-preview-action {text-align:center;padding:10px;border-radius:7px;background:var(--larpcord-accent);color:var(--larpcord-accent-ink);font-weight:750;font-size:12px;}
+.larpcord-appearance-preview>p {margin-top:16px;font-size:11px;}
+@media(max-width:800px){.larpcord-appearance-grid{grid-template-columns:1fr;}.larpcord-appearance-hero{padding:18px;}}

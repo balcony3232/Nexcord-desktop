@@ -29,3 +29,16 @@ GitHub Actions workflow: `.github/workflows/larpcord-desktop.yml` on `larpcord-d
 - Electron-updater validates the release's SHA-512 metadata and handles NSIS installation. No update silently installs in the background.
 - Windows CI publishes `v0.1.1` as a GitHub prerelease with `latest.yml`, installer, and blockmap on its first successful build.
 - Existing v0.1.0 users must install the v0.1.1 installer manually once; subsequent versions can be installed from inside Larpcord.
+
+## v0.1.2 — Personalisation and pink polish
+
+- Dedicated **Appearance** panel in Larpcord Settings.
+- Default soft pink accent, with six named presets and a hex input plus native colour picker.
+- A live preview, accessible focus styles, contrast-aware text on coloured buttons and reset-to-default.
+- Accent settings saved in the existing required `NexcordBranding` plugin ID to preserve upgrade compatibility.
+- Live updates to Larpcord Welcome, introduction and app-specific controls; no restart needed.
+- Optional **Colour Discord's buttons too** switch, off by default to avoid altering native/custom themes.
+- Cat icon and Discord's normal dark layout remain untouched.
+- Upgrades standalone installer version to **0.1.2**, retaining the GitHub release auto-updater.
+
+**Smoke tests:** select swatches, enter a custom hex value, toggle Discord colour scope, relaunch and verify settings persist, reset to default, and update from v0.1.1 using the Updater tab.

@@ -53,5 +53,5 @@
     display: inline-block;
 }
 /* Accent only our introduction card; keep Discord's native theme untouched. */
-.larpcord-intro h3 { color: #f6a4bd; }
-.larpcord-intro a { color: #f6a4bd; }
+.larpcord-intro h3 { color: var(--larpcord-accent,#F58EAF); }
+.larpcord-intro a { color: var(--larpcord-accent,#F58EAF); }

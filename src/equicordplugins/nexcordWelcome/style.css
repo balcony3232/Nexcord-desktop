@@ -2,13 +2,13 @@
 .nexcord-welcome-host {position:absolute;inset:0;z-index:5;width:100%;height:100%;overflow:auto;background:var(--background-base-low,var(--background-primary,#18191c));color:var(--text-normal,#f2f3f5);font-family:var(--font-primary,sans-serif);}
 .nexcord-welcome-page {max-width:1130px;min-height:100%;padding:40px 42px 58px;box-sizing:border-box;margin:auto;}
 .nexcord-welcome-heading {margin-bottom:34px;}
-.nexcord-welcome-eyebrow {font-size:12px;font-weight:700;color:#f7a5c0;margin-bottom:15px;}
+.nexcord-welcome-eyebrow {font-size:12px;font-weight:700;color:var(--larpcord-accent,#f58eaf);margin-bottom:15px;}
 .nexcord-welcome-heading h1 {font-size:29px;letter-spacing:-.02em;line-height:1.25;margin:0 0 9px;font-weight:700;}
 .nexcord-welcome-heading p {font-size:14px;color:var(--text-muted,#a2a5af);margin:0;}
 .nexcord-welcome-layout {display:grid;grid-template-columns:minmax(300px,1.1fr) minmax(260px,.9fr);gap:32px;}
 .nexcord-welcome-subheading {display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;}
 .nexcord-welcome-subheading h2 {font-size:17px;font-weight:700;margin:0;}
-.nexcord-welcome-subheading button {background:none;border:0;color:#f7a5c0;font-weight:600;cursor:pointer;}
+.nexcord-welcome-subheading button {background:none;border:0;color:var(--larpcord-accent,#f58eaf);font-weight:600;cursor:pointer;}
 .nexcord-welcome-conversations {display:flex;flex-direction:column;gap:9px;}
 .nexcord-welcome-conversation {display:flex;align-items:center;gap:12px;min-width:0;width:100%;text-align:left;border:1px solid var(--background-modifier-accent,#37373e);border-radius:8px;background:var(--background-secondary,#232428);color:inherit;padding:11px 13px;cursor:pointer;}
 .nexcord-welcome-conversation:hover {background:var(--background-modifier-hover,#37373e);}
@@ -27,8 +27,15 @@
 .nexcord-welcome-file {display:none;}
 .nexcord-welcome-actions {display:flex;gap:10px;margin-top:14px;}
 .nexcord-welcome-primary,.nexcord-welcome-secondary {border:0;border-radius:5px;padding:10px 15px;cursor:pointer;font-weight:650;font-size:13px;}
-.nexcord-welcome-primary {background:#f58eaf;color:#2b1c2c;}
-.nexcord-welcome-primary:hover {background:#ffb0cc;}
+.nexcord-welcome-primary {background:var(--larpcord-accent,#f58eaf);color:var(--larpcord-accent-ink,#241822);}
+.nexcord-welcome-primary:hover {background:var(--larpcord-accent-hover,#df809f);}
 .nexcord-welcome-secondary {background:var(--background-tertiary,#141517);color:var(--text-normal,#fff);}
 .nexcord-welcome-error {color:var(--text-danger,#fa777c);font-size:12px;}
 @media(max-width:850px){.nexcord-welcome-page{padding:23px 20px;}.nexcord-welcome-layout{grid-template-columns:1fr;}}
+
+/* Subtle app-specific polish, without repainting Discord's native surfaces. */
+.nexcord-welcome-conversation {transition:border-color 140ms ease,transform 140ms ease;}
+.nexcord-welcome-conversation:hover {border-color:var(--larpcord-accent-border,rgba(245,142,175,.28));transform:translateY(-1px);}
+.nexcord-welcome-heading {padding:4px 0 2px;border-bottom:1px solid var(--larpcord-accent-border,rgba(245,142,175,.28));}
+.nexcord-welcome-image {background:linear-gradient(145deg,var(--larpcord-accent-wash,rgba(245,142,175,.09)),var(--background-secondary,#232428) 75%);}
+@media(prefers-reduced-motion:reduce){.nexcord-welcome-conversation{transition:none;}.nexcord-welcome-conversation:hover{transform:none;}}
