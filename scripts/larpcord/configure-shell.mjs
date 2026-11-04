@@ -58,7 +58,7 @@ patch("src/main/startup.ts",'app.setAppUserModelId("org.equicord.equibop")',
       'app.setAppUserModelId("app.larpcord.desktop")');
 // Replace the old Equibop updater, which otherwise checks another application's feed.
 // The packaged app-update.yml points to our own GitHub Releases publisher.
-write("src/main/updater.ts", readFileSync(join(root, "scripts/larpcord/desktop-updater.ts"), "utf8"));
+write("src/main/updater.ts", readFileSync(join(root, "scripts/larpcord/desktop-updater.template"), "utf8"));
 
 // Expose only three dedicated methods to the settings UI via the sandboxed preload.
 patch("src/preload/VesktopNative.ts",
