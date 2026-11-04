@@ -4,6 +4,7 @@
  * These are cosmetic previews, NOT Discord entitlements or user properties.
  */
 import * as DataStore from "@api/DataStore";
+import { BADGE_IDS } from "./BadgeCatalog";
 
 const KEY = "larpcord.self-profile-style.v1";
 export type LocalBadge = "none" | "star" | "heart" | "moon" | "cat";
@@ -12,12 +13,18 @@ export interface LocalProfileStyle {
     accent: string;
     background: string;
     badge: LocalBadge;
+    badges: string[];
+    localDisplayName: string;
+    localUsername: string;
 }
 export const DEFAULT_PROFILE_STYLE: LocalProfileStyle = {
     enabled: false,
     accent: "#F58EAF",
     background: "#241C28",
-    badge: "none"
+    badge: "none",
+    badges: [],
+    localDisplayName: "",
+    localUsername: ""
 };
 const isHex = (s: unknown): s is string => typeof s === "string" && /^#[0-9a-f]{6}$/i.test(s);
 const badges: LocalBadge[] = ["none", "star", "heart", "moon", "cat"];
@@ -32,7 +39,10 @@ function clean(value: unknown): LocalProfileStyle {
         enabled: o.enabled === true,
         accent: isHex(o.accent) ? o.accent.toUpperCase() : DEFAULT_PROFILE_STYLE.accent,
         background: isHex(o.background) ? o.background.toUpperCase() : DEFAULT_PROFILE_STYLE.background,
-        badge: badges.includes(o.badge as LocalBadge) ? o.badge as LocalBadge : "none"
+        badge: badges.includes(o.badge as LocalBadge) ? o.badge as LocalBadge : "none",
+        badges: Array.isArray(o.badges) ? [...new Set(o.badges.filter((id): id is string => typeof id === "string" && BADGE_IDS.has(id)))].slice(0, 6) : [],
+        localDisplayName: typeof o.localDisplayName === "string" ? o.localDisplayName.trim().slice(0, 32) : "",
+        localUsername: typeof o.localUsername === "string" ? o.localUsername.trim().slice(0, 32) : ""
     };
 }
 export async function loadProfileStyles() {
