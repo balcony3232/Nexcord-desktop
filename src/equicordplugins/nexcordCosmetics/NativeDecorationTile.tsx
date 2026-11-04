@@ -44,7 +44,7 @@ function LocalDecorationPreview({ userId }: { userId: string; }) {
 }
 export function scanNativeDecorationTile(heading: HTMLElement, rail: HTMLElement, userId: string) {
     const tile = findDecorationTile(heading, rail);
-    if (mounted?.tile === tile && mounted.host.isConnected) return;
+    if (mounted && mounted.tile === tile && mounted.host.isConnected) return;
     stopNativeDecorationTile();
     if (!tile) return;
     const oldPosition = tile.style.position;
