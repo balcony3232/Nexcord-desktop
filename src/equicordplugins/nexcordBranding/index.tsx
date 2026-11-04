@@ -64,6 +64,9 @@ export default definePlugin({
     authors: [{ name: "Larpcord", id: 0n }],
     required: true,
     settings,
+    toolboxActions: {
+        "Restore Original Discord Appearance": () => { settings.store.mode = "original"; }
+    },
     startAt: StartAt.DOMContentLoaded,
     start() {
         SettingsPlugin.customEntries.push({
