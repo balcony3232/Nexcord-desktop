@@ -62,8 +62,10 @@ patch("src/main/updater.ts",
 patch("src/main/updater.ts",'    const res = await autoUpdater.checkForUpdates();',
       "    const res = undefined; // Avoid an unrelated fork's update feed.");
 patch("build/installer.nsh","$LocalAppData\\equibop","$LocalAppData\\Larpcord");
+patch("src/main/settings.ts",'"Equibop settings"','"Larpcord settings"');
+patch("src/main/settings.ts",'"Equibop state"','"Larpcord state"');
 
-for(const file of ["src/main/mainWindow.ts","src/main/startup.ts","src/main/settings.ts",
+for(const file of ["src/main/mainWindow.ts","src/main/startup.ts",
 "src/main/constants.ts","src/main/tray.ts","src/main/updater.ts",
 "src/renderer/components/settings/Updater.tsx","static/views/about.html",
 "static/views/first-launch.html","static/views/splash.html"])
