@@ -72,7 +72,7 @@ patch("src/preload/VesktopNative.ts",
       '            return () => ipcRenderer.removeListener("LARPCORD_UPDATE_PROGRESS", listener);',
       '        },',
       '        isOutdated: () => invoke<boolean>(IpcEvents.UPDATER_IS_OUTDATED),'
-    ].join("\\n").replaceAll("\\\\n", "\\n")
+    ].join("\n")
 );
 patch("build/installer.nsh","$LocalAppData\\equibop","$LocalAppData\\Larpcord");
 patch("src/main/settings.ts",'"Equibop settings"','"Larpcord settings"');
