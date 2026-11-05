@@ -63,6 +63,7 @@ export function ShopGallery({
     allowFrames?: boolean;
 }) {
     const [search, setSearch] = React.useState("");
+    const [visibleLimit, setVisibleLimit] = React.useState(60);
     const [activeKind, setActiveKind] = React.useState<ShopKind>(kind);
     const [busy, setBusy] = React.useState(false);
     const [loaded, setLoaded] = React.useState(false);
@@ -87,7 +88,7 @@ export function ShopGallery({
     const saved = getShopSelection(userId, activeKind);
     const selected = activeKind === "nameplate" && saved
         ? all.find(item => item.skuId === saved.skuId) ?? saved : saved;
-    const shown = options.slice(0, 60);
+    const shown = options.slice(0, visibleLimit);
 
     async function refreshCatalog() {
         if (busy) return;
@@ -159,11 +160,11 @@ export function ShopGallery({
                 aria-label={"Search Discord Shop " + activeKind + "s"}
                 placeholder={"Search " + activeKind + "s"}
                 value={search}
-                onChange={event => setSearch(event.currentTarget.value)}
+                onChange={event => {setSearch(event.currentTarget.value);setVisibleLimit(60);}}
             />
             <div className="nexcord-shop-gallery-count">
                 {loaded || all.length ? all.length + " available · " : "Loading catalogue · "}
-                {options.length > 60 ? "Showing first 60 matches" : options.length + " shown"}
+                {Math.min(visibleLimit,options.length) + " of " + options.length + " shown"}
             </div>
             <div className="nexcord-shop-gallery-grid">
                 <button type="button" disabled={busy}
@@ -189,6 +190,12 @@ export function ShopGallery({
                     </button>
                 ))}
             </div>
+            {options.length > visibleLimit && (
+                <button type="button" className="nexcord-shop-gallery-more"
+                    onClick={() => setVisibleLimit(limit => limit + 60)}>
+                    Show more ({Math.min(60, options.length - visibleLimit)} additional)
+                </button>
+            )}
             {activeKind === "effect" && selected && <EffectAssetStatus item={selected} catalogLoaded={loaded || all.length > 0} revision={catalogRevision} />}
             {feedback && <p className="nexcord-shop-gallery-feedback" role="status">{feedback}</p>}
             {error && <p role="alert" className="nexcord-native-popover-error">{error}</p>}
@@ -206,7 +213,11 @@ export function ShopGallery({
                         <span>Selected · Saved locally</span>
                         <small>{activeKind === "nameplate"
                             ? "Locally applied to your editor, self popout and member row."
-                            : "An effect overlay is shown locally when animation assets are available."}</small>
+                             : activeKind === "frame"
+                                ? "Frame artwork preview is shown on your own profile. Real collectibles remain unchanged."
+                                : activeKind === "decoration"
+                                ? "Decoration thumbnail appears locally in the native profile editor."
+                                : "An effect overlay is shown locally when animation assets are available."}</small>
                     </div>
                 </div>
             )}
