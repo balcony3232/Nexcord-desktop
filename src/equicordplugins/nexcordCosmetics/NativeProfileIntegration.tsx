@@ -628,8 +628,10 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
                             <small>{activeBadges.length}/6 selected · Local preview only</small>
                             <button type="button" className="larpcord-local-theme-reset" disabled={busy || !activeBadges.length}
                                 onClick={() => void saveProfileStyle({badges:[],badge:"none"})}>Clear Local Badges</button>
-                            <p>Classic badge illustrations: <a href="https://github.com/merlinfuchs/discord-badges"
-                                target="_blank" rel="noreferrer">Merlin's MIT-licensed badge collection</a>.</p>
+                            <p>Classic and Nitro-tier badge artwork: <a href="https://github.com/merlinfuchs/discord-badges"
+                                target="_blank" rel="noreferrer">Merlin</a> and <a
+                                href="https://github.com/Fmasterpro27/Discord-badges" target="_blank" rel="noreferrer">JackMa</a>
+                                (MIT-licensed). Local previews only; not earned badges.</p>
                         </div>
                     )}
                     {error && <p className="nexcord-native-popover-error" role="alert">{error}</p>}
