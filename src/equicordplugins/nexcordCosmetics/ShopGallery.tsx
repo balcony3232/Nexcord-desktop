@@ -145,13 +145,13 @@ export function ShopGallery({
             {allowFrames && (
                 <div className="nexcord-shop-kinds">
                     <button type="button" className={activeKind === "effect" ? "nexcord-shop-kind-active" : ""} onClick={() => setActiveKind("effect")}>Effects</button>
-                    <button type="button" className={activeKind === "frame" ? "nexcord-shop-kind-active" : ""} onClick={() => setActiveKind("frame")}>Frames (preview)</button>
+                    <button type="button" className={activeKind === "frame" ? "nexcord-shop-kind-active" : ""} onClick={() => setActiveKind("frame")}>Frames</button>
                 </div>
             )}
             <p className="nexcord-shop-gallery-info">
                 {activeKind === "nameplate"
                     ? "Individual nameplates, with local rendering in the editor, profile popout and member list. Nothing is purchased or unlocked."
-                    : "Select a cosmetic to preview locally. Profile effects render when assets are available. Nothing is purchased or unlocked."}
+                    : "Select a cosmetic to preview locally. Frames show their preview artwork; profile effects render where animation assets exist. Nothing is purchased or unlocked."}
             </p>
             <input
                 className="nexcord-shop-gallery-search"
@@ -174,7 +174,7 @@ export function ShopGallery({
                     <small>None</small>
                 </button>
                 {shown.map(item => (
-                    <button type="button" key={item.skuId} disabled={busy || activeKind === "frame"}
+                    <button type="button" key={item.skuId} disabled={busy}
                         title={item.name + " — select a local preview"}
                         aria-pressed={selected?.skuId === item.skuId}
                         className={selected?.skuId === item.skuId ? "nexcord-shop-gallery-selected" : ""}
@@ -211,7 +211,7 @@ export function ShopGallery({
                 </div>
             )}
             <p className="nexcord-shop-gallery-info">Some retired, event-exclusive or unavailable items may not appear. Preview images are loaded from Discord’s CDN when viewed.</p>
-            {activeKind === "frame" && <p className="nexcord-shop-gallery-info">Frames can be selected for preview, but native profile-frame display is not yet implemented.</p>}
+            {activeKind === "frame" && <p className="nexcord-shop-gallery-info">Selected frame artwork is displayed as a local labelled preview; it does not equip a real Discord collectible.</p>}
         </div>
     );
 }
