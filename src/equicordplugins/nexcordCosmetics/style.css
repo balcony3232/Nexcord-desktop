@@ -717,3 +717,9 @@
 .larpcord-local-identity-popout .larpcord-local-identity-names strong{font-size:12px;}
 .larpcord-local-identity-popout .larpcord-local-identity-badges>span{width:17px;height:17px;}
 .larpcord-local-identity-popout .larpcord-local-identity-badges img{width:17px;height:17px;}
+
+/* If external classic badge art is unavailable, show the local symbol. */
+.larpcord-badge-art{position:relative;display:inline-grid!important;place-items:center;width:28px;height:28px;flex:none;}
+.larpcord-badge-art>b{font-size:20px;font-weight:400;}
+.larpcord-badge-art>img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;}
+.larpcord-local-identity-badges .larpcord-badge-art{width:21px;height:21px;}

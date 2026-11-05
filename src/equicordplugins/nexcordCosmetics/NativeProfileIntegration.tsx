@@ -615,7 +615,10 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
                                     <button type="button" key={item.id} disabled={busy}
                                         aria-pressed={activeBadges.includes(item.id)}
                                         onClick={() => void toggleBadge(item.id)}>
-                                        {item.image ? <img loading="lazy" src={item.image} alt=""/> : <span>{item.symbol}</span>}
+                                        <span className="larpcord-badge-art"><b>{item.symbol}</b>
+                                            {item.image && <img loading="lazy" src={item.image} alt=""
+                                                onError={event => event.currentTarget.style.display = "none"}/>}
+                                        </span>
                                         <strong>{item.name}</strong><small>{item.category}</small>
                                         {activeBadges.includes(item.id) && <em>✓</em>}
                                     </button>

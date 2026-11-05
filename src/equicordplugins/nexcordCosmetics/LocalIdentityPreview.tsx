@@ -47,7 +47,10 @@ function Preview({ userId, surface }: { userId: string; surface: IdentitySurface
                 <div className="larpcord-local-identity-badges">
                     {badges.map(badge => (
                         <span key={badge.id} title={badge.name + " — local preview only"}>
-                            {badge.image ? <img src={badge.image} alt={badge.name}/> : <b>{badge.symbol}</b>}
+                            <span className="larpcord-badge-art"><b>{badge.symbol}</b>
+                                {badge.image && <img src={badge.image} alt=""
+                                    onError={event => event.currentTarget.style.display = "none"}/>}
+                            </span>
                         </span>
                     ))}
                 </div>
