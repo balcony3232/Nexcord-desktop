@@ -136,6 +136,7 @@ function FrameEdge({userId}: {userId:string}) {
     const frame = getShopSelection(userId, "frame");
     if (!frame) return null;
     const art = frame.previewUrl ?? frame.animatedPreviewUrl;
+    React.useEffect(()=>subscribeProfileStyles(refresh),[]);
     const profile = getLocalProfileStyle(userId);
     return (
         <div className="larpcord-native-frame" aria-hidden="true"
@@ -217,6 +218,7 @@ export function syncLocalIdentityPreview(surface:IdentitySurface,card:HTMLElemen
         mounts.set(surface,entry);
         const anchor=findBadgeAnchor(card,userId);
         if (anchor) anchor.append(badge.node);
+        else badge.node.style.display = "none";
         badge.root.render(<BadgeRow userId={userId}/>);
         frame.root.render(<FrameEdge userId={userId}/>);
         decoration.root.render(<AvatarLayer userId={userId}/>);
