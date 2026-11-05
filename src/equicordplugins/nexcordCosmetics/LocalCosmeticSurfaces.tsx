@@ -61,26 +61,11 @@ function LocalNameplate({ userId, backdropOnly }: { userId: string; backdropOnly
 
     const selected = getShopSelection(userId, "nameplate");
     const custom = getSelectedAsset(userId, "nameplate");
-    const badge = getLocalProfileStyle(userId).badge;
-    if (backdropOnly) {
-        if (selected) return <NameplateBackdrop item={selected} />;
-        if (custom) return <img src={custom.dataUrl} draggable={false} alt=""
-            className="nexcord-local-custom-nameplate" />;
-        return null;
-    }
-    if (!selected && !custom && badge === "none") return null;
-    return (
-        <>
-            {selected
-                ? <NameplateArtwork item={selected} userId={userId} compact animate />
-                : custom
-                    ? <img src={custom.dataUrl} draggable={false} alt="" className="nexcord-local-custom-nameplate"/>
-                    : null}
-            {badge !== "none" && <span className="larpcord-local-badge">
-                ✦ {badge.toUpperCase()} · LOCAL
-            </span>}
-        </>
-    );
+    if (selected) return backdropOnly
+        ? <NameplateBackdrop item={selected} />
+        : <NameplateArtwork item={selected} userId={userId} compact animate />;
+    if (custom) return <img src={custom.dataUrl} draggable={false} alt="" className="nexcord-local-custom-nameplate"/>;
+    return null;
 }
 
 function exactText(container: HTMLElement, wanted: string): HTMLElement[] {
