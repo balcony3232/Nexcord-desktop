@@ -525,6 +525,7 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
                     )}
                     {tab === "shop" && browseKind !== "banner" && browseKind !== "theme" && browseKind !== "badges" && userId && (
                         <ShopGallery
+                            key={browseKind}
                             kind={browseKind as ShopKind}
                             allowFrames={false}
                             userId={userId}
@@ -627,7 +628,7 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
                                 target="_blank" rel="noreferrer">Merlin's MIT-licensed badge collection</a>.</p>
                         </div>
                     )}
-                    {error && <p className="nexcord-native-popover-error" role="alert">{error}</p>
+                    {error && <p className="nexcord-native-popover-error" role="alert">{error}</p>}
                 </div>, document.body
             )}
         </>
