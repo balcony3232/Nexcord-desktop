@@ -154,6 +154,17 @@ export function applyAccent(
         [class*="titleBar_"],[class*="titleWrapper_"],
         [class*="container_"][role="banner"]
       ) { background-color: var(--larpcord-panel); }
+      /* Real opaque settings layers: avoid chat showing through after Discord
+         re-mounts the settings modal or switches Voice & Video tabs. */
+      :root[data-larpcord-mode="full"][data-larpcord-unified="true"] [class*="standardSidebarView_"],
+      :root[data-larpcord-mode="full"][data-larpcord-unified="true"] [class*="contentRegion_"],
+      :root[data-larpcord-mode="full"][data-larpcord-unified="true"] [class*="contentRegionScroller_"] {
+        background-color: var(--larpcord-chat) !important;
+      }
+      :root[data-larpcord-mode="full"][data-larpcord-unified="true"] [class*="sidebarRegion_"],
+      :root[data-larpcord-mode="full"][data-larpcord-unified="true"] [class*="sidebarRegionScroller_"] {
+        background-color: var(--larpcord-sidebar) !important;
+      }
       @media(prefers-reduced-motion:reduce) {
         .larpcord-appearance-page *, .nexcord-welcome-conversation {
             animation:none!important;transition:none!important;
