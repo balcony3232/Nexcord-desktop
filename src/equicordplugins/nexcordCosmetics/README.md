@@ -96,3 +96,11 @@ guaranteed to contain a compositable transparent frame asset.
 The selected local cosmetics and names are in DataStore and are included in a
 full Larpcord settings backup. Disable the LarpcordCosmetics plugin to remove
 the overlays without altering Discord's actual profile.
+
+## Larpcord v0.1.6 — Native Placement (experimental)
+
+Local badges now appear near the self-profile's native name/badge area and remain explicitly LOCAL-labelled, rather than floating in a full-card popup. Local display names and usernames are temporary DOM text overrides scoped to your **own opened** self-profile UI; Discord identity and chat history are never modified. Local preview selections remain saved in DataStore.
+
+Nitro evolution tiers, Server Booster tiers, legacy and current badge families are available in the badge picker, with six preview slots consistent with Discord's Badge Directory. This collection covers the currently documented categories but **may not include every future experimental tier**.
+
+Avatar decoration renders from a validated Discord CDN asset when available, with a thumbnail fallback. Profile frame rendering is an edge-only decorative approximation of Shop art, **not** an accurate or functional native animated collectible. The frame/effect selection does not change ownership or payments.

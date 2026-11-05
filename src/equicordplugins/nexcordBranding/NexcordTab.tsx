@@ -14,7 +14,7 @@ export default function NexcordTab() {
                 <NexcordLogo width={76} height={76} />
                 <div>
                     <h2 style={{ margin: 0 }}>Larpcord Desktop</h2>
-                    <p style={{ margin: "6px 0", opacity: .72 }}>v0.1.5 preview • {gitHashShort}</p>
+                    <p style={{ margin: "6px 0", opacity: .72 }}>v0.1.6 preview • {gitHashShort}</p>
                 </div>
             </div>
             <h3>Welcome to Larpcord</h3>

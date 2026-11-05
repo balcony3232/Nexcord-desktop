@@ -74,3 +74,13 @@ GitHub Actions workflow: `.github/workflows/larpcord-desktop.yml` on `larpcord-d
 - Shop galleries support Show more in 60-item batches and search through all returned catalogue items. Current/retired Discord Shop availability still depends on the public feed.
 - Fix Full Larpcord settings panels showing the chat beneath them by forcing opaque themed settings layers.
 - No Discord entitlement, purchase, billing, profile save, or username-change API is invoked. Profile editor compatibility requires real Windows testing.
+
+## v0.1.6 — Local Profile Placement & Cosmetics Repair (preview)
+
+- Replaces the floating pink `LARPCORD · LOCAL PREVIEW` block with a compact badge row anchored near the native self-profile badge/name area. Native earned badges are left intact and an explicit LOCAL label distinguishes previews.
+- Local display name/username fields move to the top of the Identity picker; saving now overrides the visible text **only inside your own opened profile card/popout** and restores it when the plugin stops. Real names, messages, API fields and Discord account data do not change.
+- Adds all documented Nitro evolution milestones (1, 3, 6, 12, 24, 36, 60, 72+ months), all classic Server Boost milestones, Bug Hunter levels, Gifting tiers, current activity types and legacy selections. Historical icons via MIT-licensed Merlin and JackMa archives with source links; unprovided art falls back to symbols.
+- Frames now create an edge-only decorative border around the actual self-profile surface; Shop imagery can texture that border. This is a **local approximation**, not the original full animated Discord frame.
+- Avatar decorations try the Discord avatar-decoration CDN asset as a pointer-events-free overlay around the actual self avatar, falling back to a thumbnail when the asset cannot load. Original Discord decorations remain untouched.
+- Removes the duplicate heart / decorative-label nameplate from the self popout. Original nameplates and effect overlays continue to use their existing mounts.
+- Release is a smoke-test preview; Discord updates can change DOM structures. If placement is unconfirmed, do not treat it as a successful integration. Previous-version recovery remains manual.
