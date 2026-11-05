@@ -63,3 +63,14 @@ GitHub Actions workflow: `.github/workflows/larpcord-desktop.yml` on `larpcord-d
 - Silent update confirmation from v0.1.3 to v0.1.4 still requires a real PC test. The installer is unsigned. Automatic rollback and automatic legacy-directory migration are not implemented.
 
 **Smoke tests:** follow `LARPCORD_V014_TEST_CHECKLIST.md`; test the silent update from v0.1.3, all tinted surfaces, profile editor and custom badge previews, restarts, export and restore after exporting a safety backup.
+
+## v0.1.5 — Local Cosmetics Follow-up (test release)
+
+- All My Custom buttons open a unified 7-category browser (Banners, Nameplates, Decorations, Effects, Frames, Badges and Identity) without moving Discord's original profile editor.
+- Local Discord-style badge gallery, including classic Nitro/Boost tiers, HypeSquad, Staff, Bug Hunter, Early Supporter and newer activity badges. Select up to six; these are LOCAL PREVIEWS, not earned Discord badges. Classic icon assets via Merlin's MIT-licensed source (attribution in picker).
+- Editable *local* display name and username in Identity, saved to Larpcord DataStore. These values only appear on your own Larpcord preview surfaces; your real account, chats, remote profile and identifiers are untouched.
+- New labelled preview overlay on the real self-profile editor card and own profile popout for local names, badge images and selected frame artwork.
+- Frame choices are now selectable and persisted; the local preview uses their Shop product artwork. Proper native animated frame rendering is not implemented.
+- Shop galleries support Show more in 60-item batches and search through all returned catalogue items. Current/retired Discord Shop availability still depends on the public feed.
+- Fix Full Larpcord settings panels showing the chat beneath them by forcing opaque themed settings layers.
+- No Discord entitlement, purchase, billing, profile save, or username-change API is invoked. Profile editor compatibility requires real Windows testing.

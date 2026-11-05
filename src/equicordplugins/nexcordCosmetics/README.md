@@ -73,3 +73,26 @@ This plugin adds compact **My Custom** controls beside Discord's original profil
 - App-wide Full Larpcord appearance colour is separate from per-profile local theme styling.
 - All local preferences are stored in DataStore, included in a full Larpcord settings backup; there are no remote writes.
 - Feature acceptance requires screenshots from the user's installed v0.1.4 build; profile editor DOM can change across Discord releases.
+
+## Larpcord v0.1.5 — Universal local cosmetic browser
+
+Every My Custom link in the original Profile Editor can open all seven categories:
+Banners, Nameplates, Decorations, Effects, Frames, Badges and Identity.
+Local display names and usernames are stored as per-user preview fields and shown
+only on Larpcord's own labelled self-profile card and popout preview. Real
+Discord identifiers and chat message authors remain unchanged.
+
+The Badge gallery covers 29 classic and modern Discord-style badges with up to
+six selected preview slots. Historic artwork is loaded on demand from the
+MIT-licensed merlinfuchs/discord-badges icon archive. Some newer badges show a
+representative symbol rather than an official icon. No badge is granted by
+Discord, and nobody else can see those local previews.
+
+Frames can be selected in the Shop gallery. A clearly marked *frame artwork
+preview* is shown on the self-profile preview; full native/animated frame
+rendering is not yet supported because the Shop listing artwork is not
+guaranteed to contain a compositable transparent frame asset.
+
+The selected local cosmetics and names are in DataStore and are included in a
+full Larpcord settings backup. Disable the LarpcordCosmetics plugin to remove
+the overlays without altering Discord's actual profile.
