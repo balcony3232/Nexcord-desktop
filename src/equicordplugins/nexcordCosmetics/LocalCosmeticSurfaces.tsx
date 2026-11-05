@@ -101,7 +101,9 @@ function findSelfPopout(): HTMLElement | undefined {
 function findNameHeading(shell: HTMLElement, userId: string): HTMLElement | undefined {
     const user = UserStore.getUser(userId) ?? UserStore.getCurrentUser();
     if (!user) return;
-    const names = [...new Set([user.globalName, user.username].filter((x): x is string => !!x))];
+    const style = getLocalProfileStyle(userId);
+    const names = [...new Set([style.localDisplayName, style.localUsername,
+        user.globalName, user.username].filter((x): x is string => !!x))];
     const shellBox = shell.getBoundingClientRect();
     const candidates = names.flatMap(name => exactText(shell, name))
         .filter(el => {
@@ -153,12 +155,12 @@ function scanPopout(userId: string) {
 
     applyProfileTheme(shell, userId);
     mountLocalEffectCard("popout", shell, userId);
+    const heading = findNameHeading(shell, userId);
     syncLocalIdentityPreview("popout", shell, userId);
     if (popout && popout.shell === shell && popout.host.node.isConnected) return;
     if (popout) restore(popout.host);
     popout = undefined;
 
-    const heading = findNameHeading(shell, userId);
     if (!heading || !heading.parentElement) return;
 
     // Insert a compact nameplate immediately after the name block in the
