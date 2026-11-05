@@ -547,19 +547,43 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
                             <h4 className="larpcord-local-identity-header">Local Name & Username</h4>
                             <label className="larpcord-local-theme-row">
                                 <span>Local display name</span>
-                                <input type="text" maxLength={32} value={identityDraft.displayName} placeholder="Use real display name"
-                                    onChange={e => setIdentityDraft(old => ({...old,displayName:e.currentTarget.value}))}/>
+                                <input type="text" maxLength={32} autoComplete="off" spellCheck={false}
+                                    aria-label="Local display name" value={identityDraft.displayName}
+                                    placeholder="Use real display name"
+                                    onChange={event => {
+                                        // React may clear currentTarget before the queued updater runs.
+                                        // Capture the string synchronously, then update state with that value.
+                                        const value = event.currentTarget.value;
+                                        setIdentityDraft(old => ({ ...old, displayName: value }));
+                                    }}
+                                    onKeyDown={event => {
+                                        if (event.key !== "Escape") event.stopPropagation();
+                                    }}/>
                             </label>
                             <label className="larpcord-local-theme-row">
                                 <span>Local username</span>
-                                <input type="text" maxLength={32} value={identityDraft.username} placeholder="Use real username"
-                                    onChange={e => setIdentityDraft(old => ({...old,username:e.currentTarget.value}))}/>
+                                <input type="text" maxLength={32} autoComplete="off" spellCheck={false}
+                                    aria-label="Local username" value={identityDraft.username}
+                                    placeholder="Use real username"
+                                    onChange={event => {
+                                        const value = event.currentTarget.value;
+                                        setIdentityDraft(old => ({ ...old, username: value }));
+                                    }}
+                                    onKeyDown={event => {
+                                        if (event.key !== "Escape") event.stopPropagation();
+                                    }}/>
                             </label>
-                            <button type="button" className="larpcord-local-theme-reset" disabled={busy}
+                            <button type="button" className="larpcord-local-theme-reset"
+                                disabled={busy || (identityDraft.displayName === profileStyle.localDisplayName
+                                    && identityDraft.username === profileStyle.localUsername)}
                                 onClick={() => void saveProfileStyle({
                                     localDisplayName: identityDraft.displayName,
-                                    localUsername: identityDraft.username,enabled:true
-                                })}>Save Local Names</button>
+                                    localUsername: identityDraft.username,
+                                    enabled: true
+                                })}>{busy ? "Saving…" : "Save Local Names"}</button>
+                            {(identityDraft.displayName !== profileStyle.localDisplayName ||
+                              identityDraft.username !== profileStyle.localUsername) &&
+                                <p role="status">Preview updated. Click Save Local Names to keep these changes.</p>}
                             <p>The saved names replace the text in your own profile view, not in messages or on Discord's servers.</p>
                             <div className="larpcord-local-theme-sample"
                                 style={{
@@ -567,8 +591,8 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
                                     background: profileStyle.background
                                 }}>
                                 <span style={{ color: profileStyle.accent }}>✦ Profile preview</span>
-                                <strong>{profileStyle.localDisplayName || UserStore.getCurrentUser()?.globalName || UserStore.getCurrentUser()?.username || "You"}</strong>
-                                <small>@{profileStyle.localUsername || UserStore.getCurrentUser()?.username || "you"}</small>
+                                <strong>{identityDraft.displayName || UserStore.getCurrentUser()?.globalName || UserStore.getCurrentUser()?.username || "You"}</strong>
+                                <small>@{identityDraft.username || UserStore.getCurrentUser()?.username || "you"}</small>
                                 {(profileStyle.badges.length > 0 || profileStyle.badge !== "none") &&
                                     <small>✦ {(profileStyle.badges.map(id => badgeById(id)?.name).filter(Boolean).join(", ") || profileStyle.badge).toUpperCase()} · LOCAL</small>}
                             </div>
