@@ -84,3 +84,12 @@ GitHub Actions workflow: `.github/workflows/larpcord-desktop.yml` on `larpcord-d
 - Avatar decorations try the Discord avatar-decoration CDN asset as a pointer-events-free overlay around the actual self avatar, falling back to a thumbnail when the asset cannot load. Original Discord decorations remain untouched.
 - Removes the duplicate heart / decorative-label nameplate from the self popout. Original nameplates and effect overlays continue to use their existing mounts.
 - Release is a smoke-test preview; Discord updates can change DOM structures. If placement is unconfirmed, do not treat it as a successful integration. Previous-version recovery remains manual.
+
+## v0.1.7 — Local Name Input Repair (test build)
+
+- Fix a React controlled-input bug in My Custom > Identity that prevented typing into Local Display Name and Local Username fields: capture each event's input value synchronously before passing it to React's queued state updater.
+- Prevent Discord-level typing shortcuts from interfering with input keystrokes while leaving Escape available.
+- Live identity preview updates immediately as text is entered; **Save Local Names** persists both fields to Larpcord's local DataStore.
+- Disable Save when unchanged and provide explicit unsaved-change feedback.
+- This is a focused regression fix. Official Discord account names, messages and server data are never changed.
+- The result is not considered fully verified until a user can type, save, reopen and restart the actual Windows client.
