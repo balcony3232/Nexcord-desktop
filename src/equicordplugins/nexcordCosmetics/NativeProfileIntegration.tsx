@@ -543,7 +543,24 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
                     </p>}
                     {browseKind === "theme" && userId && (
                         <div className="larpcord-local-theme-picker">
-                            <p>These colours and badges appear only on your local self-profile preview. They do not grant Nitro, official badges or Discord cosmetics.</p>
+                            <p>Changes below are visible only in your own Larpcord profile view. Nothing is changed on your Discord account.</p>
+                            <h4 className="larpcord-local-identity-header">Local Name & Username</h4>
+                            <label className="larpcord-local-theme-row">
+                                <span>Local display name</span>
+                                <input type="text" maxLength={32} value={identityDraft.displayName} placeholder="Use real display name"
+                                    onChange={e => setIdentityDraft(old => ({...old,displayName:e.currentTarget.value}))}/>
+                            </label>
+                            <label className="larpcord-local-theme-row">
+                                <span>Local username</span>
+                                <input type="text" maxLength={32} value={identityDraft.username} placeholder="Use real username"
+                                    onChange={e => setIdentityDraft(old => ({...old,username:e.currentTarget.value}))}/>
+                            </label>
+                            <button type="button" className="larpcord-local-theme-reset" disabled={busy}
+                                onClick={() => void saveProfileStyle({
+                                    localDisplayName: identityDraft.displayName,
+                                    localUsername: identityDraft.username,enabled:true
+                                })}>Save Local Names</button>
+                            <p>The saved names replace the text in your own profile view, not in messages or on Discord's servers.</p>
                             <div className="larpcord-local-theme-sample"
                                 style={{
                                     borderColor: profileStyle.accent,
@@ -570,22 +587,6 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
                                 <input type="color" value={profileStyle.background} disabled={busy}
                                     onChange={e => void saveProfileStyle({ background: e.currentTarget.value, enabled: true })}/>
                             </label>
-                            <label className="larpcord-local-theme-row">
-                                <span>Local display name</span>
-                                <input type="text" maxLength={32} value={identityDraft.displayName} placeholder="Use real display name"
-                                    onChange={e => setIdentityDraft(old => ({...old,displayName:e.currentTarget.value}))}/>
-                            </label>
-                            <label className="larpcord-local-theme-row">
-                                <span>Local username</span>
-                                <input type="text" maxLength={32} value={identityDraft.username} placeholder="Use real username"
-                                    onChange={e => setIdentityDraft(old => ({...old,username:e.currentTarget.value}))}/>
-                            </label>
-                            <button type="button" className="larpcord-local-theme-reset" disabled={busy}
-                                onClick={() => void saveProfileStyle({
-                                    localDisplayName: identityDraft.displayName,
-                                    localUsername: identityDraft.username,enabled:true
-                                })}>Apply Local Names</button>
-                            <p>Local names only affect your on-device preview; messages and your actual Discord identity stay unchanged.</p>
                             <span className="larpcord-local-theme-label">Extra decorative symbols</span>
                             <div className="larpcord-local-badge-presets" role="group" aria-label="Local badge previews">
                                 {([
