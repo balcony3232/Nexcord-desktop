@@ -10,6 +10,7 @@ import { createRoot, React, UserStore } from "@webpack/common";
 import type { Root } from "react-dom/client";
 
 import { mountLocalEffectCard, stopLocalEffectCard } from "./EffectCardOverlay";
+import { syncLocalIdentityPreview, stopLocalIdentityPreview } from "./LocalIdentityPreview";
 import { NameplateArtwork, NameplateBackdrop } from "./NameplateArtwork";
 import { getShopSelection, subscribeShop } from "./ShopCatalog";
 import { getSelectedAsset, subscribe as subscribeCustom } from "./storage";
@@ -151,6 +152,7 @@ function restore(host: Host) {
 }
 function clearPopout() {
     clearProfileTheme();
+    stopLocalIdentityPreview("popout");
     if (popout) {
         restore(popout.host);
         popout = undefined;
@@ -166,6 +168,7 @@ function scanPopout(userId: string) {
 
     applyProfileTheme(shell, userId);
     mountLocalEffectCard("popout", shell, userId);
+    syncLocalIdentityPreview("popout", shell, userId);
     if (popout && popout.shell === shell && popout.host.node.isConnected) return;
     if (popout) restore(popout.host);
     popout = undefined;

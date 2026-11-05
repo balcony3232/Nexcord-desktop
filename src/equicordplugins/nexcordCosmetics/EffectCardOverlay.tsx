@@ -28,7 +28,7 @@ function hasProfileAvatar(element: HTMLElement, memberY: number): boolean {
             && Math.abs(r.width - r.height) < 18 && r.top < memberY - 150;
     });
 }
-function findProfileCard(rail: HTMLElement): HTMLElement | undefined {
+export function findProfileCard(rail: HTMLElement): HTMLElement | undefined {
     const railBox = rail.getBoundingClientRect();
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     let node: Node | null;

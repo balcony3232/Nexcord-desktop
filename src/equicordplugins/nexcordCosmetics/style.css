@@ -680,3 +680,40 @@
 .larpcord-local-decoration-preview{display:grid;place-items:center;background:var(--background-secondary);}
 .larpcord-local-decoration-preview img{max-width:100%;max-height:100%;object-fit:contain;}
 .larpcord-local-decoration-preview small{position:absolute;bottom:4px;right:4px;font-size:8px;line-height:1.2;background:rgba(0,0,0,.65);color:#fff;padding:2px 4px;border-radius:3px;}
+
+/* Cosmetic hub: all categories are accessible from every My Custom trigger. */
+.larpcord-cosmetics-kind-tabs{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:13px;padding-bottom:10px;border-bottom:1px solid var(--border-subtle);}
+.larpcord-cosmetics-kind-tabs button{padding:6px 8px;border:1px solid var(--border-subtle);border-radius:7px;background:var(--background-base-low,#202026);color:var(--text-normal,#fff);font-size:11px;cursor:pointer;}
+.larpcord-cosmetics-kind-tabs button.is-active{border-color:var(--larpcord-accent,#f58eaf);background:var(--larpcord-accent-wash,rgba(245,142,175,.1));}
+.larpcord-badges-browser{display:flex;flex-direction:column;gap:12px;}
+.larpcord-badges-browser p{font-size:11px;color:var(--text-muted,#aaa);margin:0;}
+.larpcord-badges-browser input,.larpcord-local-theme-row input[type=text]{background:var(--input-background,#202026);color:var(--text-normal,#eee);border:1px solid var(--border-subtle);border-radius:6px;padding:9px;min-width:0;font-size:12px;}
+.larpcord-badges-browser a{color:var(--larpcord-accent,#f58eaf);}
+.larpcord-badge-gallery{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;max-height:340px;overflow-y:auto;}
+.larpcord-badge-gallery button{position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0;cursor:pointer;padding:9px 5px;background:var(--background-base-low,#202026);color:var(--text-normal,#fff);border:1px solid var(--border-subtle);border-radius:8px;}
+.larpcord-badge-gallery button[aria-pressed=true]{border-color:var(--larpcord-accent,#f58eaf);background:var(--larpcord-accent-wash,rgba(245,142,175,.12));}
+.larpcord-badge-gallery img,.larpcord-badge-gallery button>span{width:27px;height:27px;object-fit:contain;font-size:23px;}
+.larpcord-badge-gallery strong{font-size:10px;text-align:center;line-height:1.15;}
+.larpcord-badge-gallery small{font-size:9px;color:var(--text-muted,#aaa);}
+.larpcord-badge-gallery em{position:absolute;right:5px;top:2px;color:var(--larpcord-accent,#f58eaf);}
+.larpcord-local-theme-row input[type=text]{width:165px;}
+.larpcord-identity-preview-host{position:absolute!important;top:0;right:0;left:0;bottom:0;z-index:9;pointer-events:none!important;}
+.larpcord-local-identity-card{position:absolute;top:155px;right:9px;max-width:190px;display:flex;flex-direction:column;gap:6px;padding:9px;background:#241d29;color:#fff;border:1px solid #ef93b5;border-radius:9px;box-shadow:0 3px 14px rgba(0,0,0,.25);font-size:11px;overflow:hidden;}
+.larpcord-local-identity-label{font-size:9px;letter-spacing:.06em;font-weight:700;color:#ffc0d4;}
+.larpcord-local-identity-names{display:flex;flex-direction:column;gap:2px;overflow:hidden;}
+.larpcord-local-identity-names strong,.larpcord-local-identity-names small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.larpcord-local-identity-names strong{font-size:14px;}
+.larpcord-local-identity-names small{opacity:.8;}
+.larpcord-local-identity-badges{display:flex;gap:4px;flex-wrap:wrap;max-width:165px;}
+.larpcord-local-identity-badges>span{width:22px;height:22px;display:grid;place-items:center;}
+.larpcord-local-identity-badges img{width:21px;height:21px;object-fit:contain;}
+.larpcord-local-identity-badges b{font-size:18px;font-weight:400;}
+.larpcord-local-frame{display:flex;gap:6px;align-items:center;font-size:9px;max-width:170px;}
+.larpcord-local-frame>img{width:34px;height:34px;border-radius:5px;object-fit:cover;}
+.larpcord-local-frame>span{line-height:1.35;overflow-wrap:anywhere;}
+.larpcord-local-frame strong{display:block;font-size:10px;}
+.larpcord-local-identity-popout{top:105px;right:8px;max-width:140px;padding:6px;gap:3px;}
+.larpcord-local-identity-popout .larpcord-local-identity-label{font-size:8px;}
+.larpcord-local-identity-popout .larpcord-local-identity-names strong{font-size:12px;}
+.larpcord-local-identity-popout .larpcord-local-identity-badges>span{width:17px;height:17px;}
+.larpcord-local-identity-popout .larpcord-local-identity-badges img{width:17px;height:17px;}

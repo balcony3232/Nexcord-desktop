@@ -22,7 +22,8 @@ import { applyShopItem } from "./ShopCatalog";
 import { scanNativeNameplate, stopNativeNameplate } from "./NativeNameplate";
 import { scanNativeEffectTile, stopNativeEffectTile } from "./NativeEffectTile";
 import { scanNativeDecorationTile, stopNativeDecorationTile } from "./NativeDecorationTile";
-import { scanNativeEffectCard, stopNativeEffectCard } from "./EffectCardOverlay";
+import { findProfileCard, scanNativeEffectCard, stopNativeEffectCard } from "./EffectCardOverlay";
+import { syncLocalIdentityPreview, stopLocalIdentityPreview } from "./LocalIdentityPreview";
 
 type Surface = "sidebar" | "picker";
 type NativeKind = CosmeticKind | ShopKind | "theme" | "badges";
@@ -198,6 +199,7 @@ function scan() {
             addTrigger(heading, "banner", "sidebar");
             hideEditorNitroPromotion(rail);
             scanNativeEffectCard(rail, UserStore.getCurrentUser()!.id);
+            syncLocalIdentityPreview("editor", findProfileCard(rail), UserStore.getCurrentUser()!.id);
             break;
         }
         let decorationMounted = false;
@@ -289,6 +291,7 @@ export function stopNativeProfileIntegration() {
     stopNativeEffectTile();
     stopNativeNameplate();
     stopNativeEffectCard();
+    stopLocalIdentityPreview("editor");
     observer?.disconnect();
     observer = undefined;
     if (scanTimer) clearTimeout(scanTimer);
