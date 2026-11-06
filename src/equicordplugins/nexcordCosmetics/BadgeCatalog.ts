@@ -119,6 +119,51 @@ for (const family of experimental) {
     }
 }
 
+/**
+ * Verified SVG badge illustrations from the MIT-licensed 2026 Discord
+ * Badge Archive. Pinned to a specific commit so icon names do not drift.
+ * Experimental tier families share a base emblem where no tier-specific SVG
+ * is available; those are preview variants, not official entitlement icons.
+ */
+const ARCHIVE = "https://cdn.jsdelivr.net/gh/EliteZilla/Discord-Badges@294dee8c8ecc4f885806915d005ed199ff7baaa7/assets/";
+function archivedIcon(id: string): string | undefined {
+    if (id === "nitro") return "profile/discord-nitro.svg";
+    const nitro = /^nitro-(bronze|silver|gold|platinum|diamond|emerald|ruby|opal)$/.exec(id);
+    if (nitro) return "nitro/" + nitro[1] + ".svg";
+    const boost = /^boost(1|2|3|6|9|12|15|18|24)$/.exec(id);
+    if (boost) {
+        const levels = ["1","2","3","6","9","12","15","18","24"];
+        return "boosts/discordboost" + (levels.indexOf(boost[1]) + 1) + ".svg";
+    }
+    const exact: Record<string, string> = {
+        "quest": "profile/discord-quests.svg",
+        "orbs": "profile/orbs.svg",
+        "staff": "profile/discord-staff.svg",
+        "bug1": "profile/bug-hunter.svg",
+        "bug2": "profile/golden-bug-hunter.svg",
+        "bravery": "legacy/hypesquad-bravery.svg",
+        "brilliance": "legacy/hypesquad-brilliance.svg",
+        "balance": "legacy/hypesquad-balance.svg",
+        "hypesquad": "legacy/hypesquad-events.svg",
+        "supporter": "legacy/early-supporter.svg",
+        "moderator": "legacy/moderator-program-alumni.svg",
+        "partner": "legacy/partnered-server-owner.svg",
+        "legacy-name": "profile/legacy-username.svg",
+        "meadow": "legacy/last-meadow-online.svg",
+        "active-dev": "developers/active-developer.svg"
+    };
+    if (exact[id]) return exact[id];
+    if (/^gifting/.test(id)) return "experimental/gifting.svg";
+    if (id === "age" || id === "account-age" || id.startsWith("age-tier")) return "experimental/account-age.svg";
+    if (id === "gametime" || id.startsWith("gametime-tier")) return "experimental/game-time.svg";
+    if (id === "game-variety" || id.startsWith("game-variety-tier")) return "experimental/game-variety.svg";
+    if (id === "streaming" || id === "stream-tier" || id.startsWith("streaming-tier")) return "experimental/streaming.svg";
+}
+for (const badgeItem of BADGE_CATALOG) {
+    const asset = archivedIcon(badgeItem.id);
+    if (asset) badgeItem.image = ARCHIVE + asset;
+}
+
 // Preserve historical saved badge IDs, but remove duplicate browse entries.
 const unique = new Set<string>();
 export const BADGE_GROUPS = [
