@@ -447,20 +447,17 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
             setPosition(positionForEditorPortal(portalContainer, left, top));
         };
         updatePosition();
-        const onPointerDown = (event: PointerEvent) => {
-            if (trigger.current?.contains(event.target as Node)) return;
-            if (panel.current?.contains(event.target as Node)) return;
-            setOpen(false);
-        };
+        // Discord's profile editor uses its own popovers, focus traps and
+        // pointer capture. A global click-away listener misidentified clicks
+        // *inside* the picker and dismissed it before the selected item saved.
+        // Only explicit close/trigger-toggle/Escape should dismiss this panel.
         const onKeyDown = (event: KeyboardEvent) => {
             if (event.key === "Escape") setOpen(false);
         };
-        document.addEventListener("pointerdown", onPointerDown, true);
         document.addEventListener("keydown", onKeyDown);
         window.addEventListener("resize", updatePosition);
         window.addEventListener("scroll", updatePosition, true);
         return () => {
-            document.removeEventListener("pointerdown", onPointerDown, true);
             document.removeEventListener("keydown", onKeyDown);
             window.removeEventListener("resize", updatePosition);
             window.removeEventListener("scroll", updatePosition, true);
@@ -475,7 +472,6 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
             await applyAsset(userId, browseKind as CosmeticKind, id);
             if (browseKind === "nameplate") await applyShopItem(userId, "nameplate", undefined);
             showToast({ text: "Local " + label + " applied — only you can see it", variant: "success" });
-            setOpen(false);
         } catch (err) {
             setError(err instanceof Error ? err.message : String(err));
         } finally {
@@ -492,7 +488,6 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
             await applyAsset(userId, browseKind as CosmeticKind, asset.id);
             if (browseKind === "nameplate") await applyShopItem(userId, "nameplate", undefined);
             showToast({ text: "Custom " + label + " imported and applied locally", variant: "success" });
-            setOpen(false);
         } catch (err) {
             setError(err instanceof Error ? err.message : String(err));
         } finally {
@@ -535,7 +530,9 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
                             browseKind === "effect" ? "Profile Effects" :
                             browseKind === "frame" ? "Profile Frames" :
                             browseKind === "badges" ? "Badge Catalogue" : "Local Profile Identity"}</strong>
-                        <span>Only you</span>
+                        <button type="button" className="larpcord-picker-close"
+                            aria-label="Close cosmetic picker" title="Close"
+                            onClick={() => setOpen(false)}>×</button>
                     </div>
                     <div className="larpcord-cosmetics-kind-tabs" role="tablist" aria-label="Browse local cosmetics">
                         {([
