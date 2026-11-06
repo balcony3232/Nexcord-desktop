@@ -120,3 +120,12 @@ GitHub Actions workflow: `.github/workflows/larpcord-desktop.yml` on `larpcord-d
 3. No extraneous LOCAL stamps on the actual profile; selected items remain clearly labelled as local inside the settings/picker.
 4. Existing Discord Profile Editor, purchases and normal Save controls must continue working.
 5. Verify frame and avatar decoration preview positions against the current Discord UI; exact asset rendering can vary.
+
+## v0.1.10 — Unclickable Cosmetic Picker Hotfix (test build)
+
+- Replace the Profile Editor's embedded cosmetic portal with a browser-native top-layer `<dialog>` so Discord's own modal overlays/focus traps cannot capture mouse clicks that belong to My Custom.
+- Keep the popup above the Profile Editor and allow its buttons, search boxes, identity text inputs, and category tabs to receive pointer events normally.
+- Close using its × button or Escape; the Profile Editor behind it is temporarily inactive while this modal is open.
+- Remove obsolete portal positioning code, isolate the dialog styles, and safely clean up the modal when closing.
+- Badge library, saved cosmetics, selections, and real Discord account data are unchanged.
+- **Manual acceptance needed:** the automated client build cannot simulate the current Discord UI's pointer/focus behaviour. Confirm clicking tabs, selecting badges, typing local names and closing/reopening works.
