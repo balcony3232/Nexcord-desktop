@@ -14,7 +14,7 @@ import type { Root } from "react-dom/client";
 import { applyAsset, getAppearance, importAsset, listAssets, loadCosmetics, subscribe } from "./storage";
 import { DEFAULT_PROFILE_STYLE, getLocalProfileStyle, loadProfileStyles, setLocalProfileStyle, subscribeProfileStyles } from "./LocalProfileStyle";
 import type { LocalBadge } from "./LocalProfileStyle";
-import { BADGE_CATALOG, badgeById } from "./BadgeCatalog";
+import { ALL_BADGES_BY_GROUP, badgeById } from "./BadgeCatalog";
 import type { CosmeticKind } from "./storage";
 import type { ShopKind } from "./ShopCatalog";
 import { ShopGallery } from "./ShopGallery";
@@ -376,6 +376,7 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
     const [position, setPosition] = React.useState({ left: 16, top: 16 });
     const [browseKind, setBrowseKind] = React.useState<NativeKind>(kind);
     const [badgeSearch, setBadgeSearch] = React.useState("");
+    const [badgeGroup, setBadgeGroup] = React.useState<string>("nitro");
     const [identityDraft, setIdentityDraft] = React.useState({displayName:"",username:""});
     const [, refresh] = React.useReducer((n: number) => n + 1, 0);
     React.useEffect(() => subscribe(refresh), []);
@@ -416,8 +417,12 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
     const assets = customKind ? listAssets(browseKind as CosmeticKind) : [];
     const selected = customKind && userId ? getAppearance(userId)[browseKind as CosmeticKind] : undefined;
     const activeBadges = profileStyle.badges;
-    const badgeMatches = BADGE_CATALOG.filter(item =>
-        (item.name + " " + item.category).toLowerCase().includes(badgeSearch.trim().toLowerCase()));
+    const badgeQuery = badgeSearch.trim().toLowerCase();
+    const badgeGroupsVisible = ALL_BADGES_BY_GROUP.map(group => ({
+        ...group,
+        items: group.items.filter(item => !badgeQuery ||
+            (item.name + " " + item.category).toLowerCase().includes(badgeQuery))
+    })).filter(group => group.items.length && (badgeQuery || badgeGroup === group.key));
     async function toggleBadge(id: string) {
         if (!activeBadges.includes(id) && activeBadges.length >= 6) {
             setError("Select up to six local badge previews.");
@@ -706,28 +711,54 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
                     )}
                     {browseKind === "badges" && (
                         <div className="larpcord-badges-browser">
-                            <p>Select up to six local Discord-style badge previews. This does not unlock official badges.</p>
+                            <p>Browse documented badge families and their evolving tiers. Choose up to six preview badges; these do not grant Discord status or account entitlements.</p>
                             <input type="search" aria-label="Search available badge previews"
                                 placeholder="Search badges…" value={badgeSearch}
                                 onChange={e => setBadgeSearch(e.currentTarget.value)}/>
-                            <div className="larpcord-badge-gallery">
-                                {badgeMatches.map(item => (
-                                    <button type="button" key={item.id} disabled={busy}
-                                        aria-pressed={activeBadges.includes(item.id)}
-                                        onClick={() => void toggleBadge(item.id)}>
-                                        <span className="larpcord-badge-art"><b>{item.symbol}</b>
-                                            {item.image && <img loading="lazy" src={item.image} alt=""
-                                                onError={event => event.currentTarget.style.display = "none"}/>}
-                                        </span>
-                                        <strong>{item.name}</strong><small>{item.category}</small>
-                                        {activeBadges.includes(item.id) && <em>✓</em>}
+                            <div className="larpcord-badge-categories" role="tablist" aria-label="Badge families">
+                                {ALL_BADGES_BY_GROUP.map(group => (
+                                    <button type="button" role="tab" key={group.key}
+                                        aria-selected={badgeGroup === group.key && !badgeQuery}
+                                        title={group.hint}
+                                        onClick={() => { setBadgeGroup(group.key); setBadgeSearch(""); }}>
+                                        {group.title}
+                                        <small>{group.items.length}</small>
                                     </button>
+                                ))}
+                            </div>
+                            <div className="larpcord-badge-sections">
+                                {badgeGroupsVisible.map(group => (
+                                    <section key={group.key} className="larpcord-badge-section"
+                                        aria-label={group.title}>
+                                        <div className="larpcord-badge-section-header">
+                                            <strong>{group.title}</strong>
+                                            <small>{group.items.length} choices · {group.hint}</small>
+                                        </div>
+                                        <div className="larpcord-badge-gallery">
+                                            {group.items.map(item => (
+                                                <button type="button" key={item.id} disabled={busy}
+                                                    aria-pressed={activeBadges.includes(item.id)}
+                                                    title={item.name + " — local preview, not an earned badge"}
+                                                    onClick={() => void toggleBadge(item.id)}>
+                                                    <span className="larpcord-badge-art"><b>{item.symbol}</b>
+                                                        {item.image && <img loading="lazy" src={item.image} alt=""
+                                                            onError={event => event.currentTarget.style.display = "none"}/>}
+                                                    </span>
+                                                    <strong>{item.name}</strong>
+                                                    {activeBadges.includes(item.id) && <em>✓</em>}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </section>
                                 ))}
                             </div>
                             <small>{activeBadges.length}/6 selected · Local preview only</small>
                             <button type="button" className="larpcord-local-theme-reset" disabled={busy || !activeBadges.length}
                                 onClick={() => void saveProfileStyle({badges:[],badge:"none"})}>Clear Local Badges</button>
-                            <p>Classic and Nitro-tier badge artwork: <a href="https://github.com/merlinfuchs/discord-badges"
+                            <p>Experimental milestone labels are community-indexed and may change. For the confirmed badge families, see
+                                <a href="https://support.discord.com/hc/en-us/articles/44369363856663-Discord-Profile-Badges-What-Each-Badge-Means"
+                                    target="_blank" rel="noreferrer">Discord's official badge guide</a>.
+                                Classic and Nitro-tier artwork: <a href="https://github.com/merlinfuchs/discord-badges"
                                 target="_blank" rel="noreferrer">Merlin</a> and <a
                                 href="https://github.com/Fmasterpro27/Discord-badges" target="_blank" rel="noreferrer">JackMa</a>
                                 (MIT-licensed). Local previews only; not earned badges.</p>
