@@ -101,3 +101,22 @@ GitHub Actions workflow: `.github/workflows/larpcord-desktop.yml` on `larpcord-d
 - Automatically focus the name input and show focus status plus a live draft preview.
 - Preserves all previously selected cosmetics; no Discord account changes.
 - Awaiting Windows validation of typing, saving, reopening and restarting.
+
+## v0.1.9 — Profile Editor Interaction and Badge Library (test release)
+
+- **Popup stability:** The My Custom picker no longer closes when the user clicks inside a gallery, selects a badge, changes a tab, imports an image, or chooses a Shop cosmetic. The old document-level click-away handler is removed; close with the × button, My Custom toggle, or Escape.
+- **Badge Library:** A searchable categorized directory grouped into Nitro evolution, every documented Server Boost tier, Gifting tiers, Quests/Orbs/activity, experimental Account Age/Game Time/Game Variety/Streaming milestones, both Bug Hunter levels, staff/developer, HypeSquad and miscellaneous/legacy badges.
+- The currently documented evolving Nitro milestones are 1/3/6/12/24/36/60/72+ months. There is no unique Nitro icon for every intervening subscription month. Some experimental milestone labels are drawn from community archives and can change with Discord updates.
+- Classic and evolution badge art is loaded from pinned, MIT-licensed open archives and falls back to Unicode symbols when unavailable.
+- **Profile appearance:** Removed visibly printed LOCAL, LOCAL FRAME and LOCAL PREVIEW labels from self-profile badges, avatar decoration and frame previews. Picker text and badge tooltips still clearly disclose the on-device-only nature; real badges and Discord entitlements do not change.
+- **Decoration:** The native editor's avatar tile attempts to use the actual validated Discord decoration CDN asset with a preview-image fallback. Overlay never blocks the native tile.
+- **Frames:** Refined the edge-only card border, removed the visible frame caption and added a thumbnail preview to Discord's real Frame tile. Exact native animated frame rendering remains unimplemented; selected Shop imagery is only a local approximation.
+- This hotfix is intended to repair the broken popup and visual placement in v0.1.8; needs real Windows user testing before it is considered stable.
+
+### Acceptance
+
+1. Clicking tabs/items/textboxes in My Custom must never automatically dismiss it.
+2. Badges must show grouped categories, searchable across all sections, with non-empty accessible names and visible selections.
+3. No extraneous LOCAL stamps on the actual profile; selected items remain clearly labelled as local inside the settings/picker.
+4. Existing Discord Profile Editor, purchases and normal Save controls must continue working.
+5. Verify frame and avatar decoration preview positions against the current Discord UI; exact asset rendering can vary.

@@ -104,3 +104,11 @@ Local badges now appear near the self-profile's native name/badge area and remai
 Nitro evolution tiers, Server Booster tiers, legacy and current badge families are available in the badge picker, with six preview slots consistent with Discord's Badge Directory. This collection covers the currently documented categories but **may not include every future experimental tier**.
 
 Avatar decoration renders from a validated Discord CDN asset when available, with a thumbnail fallback. Profile frame rendering is an edge-only decorative approximation of Shop art, **not** an accurate or functional native animated collectible. The frame/effect selection does not change ownership or payments.
+
+## v0.1.9 — Native Cosmetics and Badge Picker
+
+My Custom gallery remains open while interacting; close explicitly with the × button or Escape. The Badge library groups Nitro milestones, boosts, gifting, bug hunters, current/experimental activity and historic categories. Some experimental badge tiers are community-indexed, and no claim is made that Discord offers or recognizes all variants on this build.
+
+Profile badges, frame artwork and avatar decoration overlays no longer include printed LOCAL stamps. These changes are exclusively on-device previews; actual Discord account badges, purchases, names and user information are not affected. The picker explicitly explains this, and badge tooltips provide a local-preview clarification.
+
+Frame preview artwork now appears in the native Frame tile (visual-only, pointer-events disabled). Full native animation requires actual frame assets rather than Shop catalogue thumbnails and is not implemented.
