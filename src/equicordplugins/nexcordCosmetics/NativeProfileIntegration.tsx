@@ -21,6 +21,7 @@ import { ShopGallery } from "./ShopGallery";
 import { applyShopItem } from "./ShopCatalog";
 import { scanNativeNameplate, stopNativeNameplate } from "./NativeNameplate";
 import { scanNativeEffectTile, stopNativeEffectTile } from "./NativeEffectTile";
+import { scanNativeFrameTile, stopNativeFrameTile } from "./NativeFrameTile";
 import { scanNativeDecorationTile, stopNativeDecorationTile } from "./NativeDecorationTile";
 import { findProfileCard, scanNativeEffectCard, stopNativeEffectCard } from "./EffectCardOverlay";
 import { syncLocalIdentityPreview, stopLocalIdentityPreview } from "./LocalIdentityPreview";
@@ -220,10 +221,11 @@ function scan() {
             if (!rail) continue;
             addTrigger(heading, "effect", "sidebar");
             scanNativeEffectTile(heading, rail, UserStore.getCurrentUser()!.id);
+            scanNativeFrameTile(heading, rail, UserStore.getCurrentUser()!.id);
             effectTileMounted = true;
             break;
         }
-        if (!effectTileMounted) stopNativeEffectTile();
+        if (!effectTileMounted) { stopNativeEffectTile(); stopNativeFrameTile(); }
         const nameplateLabels = labels.get("Nameplate") ?? [];
         let mountedNameplate = false;
         for (const heading of nameplateLabels) {
@@ -289,6 +291,7 @@ export function startNativeProfileIntegration() {
 export function stopNativeProfileIntegration() {
     stopNativeDecorationTile();
     stopNativeEffectTile();
+    stopNativeFrameTile();
     stopNativeNameplate();
     stopNativeEffectCard();
     stopLocalIdentityPreview("editor");
