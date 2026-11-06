@@ -70,5 +70,95 @@ export const BADGE_CATALOG: PreviewBadge[] = [
     other("account-age","Account Age","Activity","⏳"),
     other("stream-tier","Streaming milestone","Activity","📡")
 ];
+
+/**
+ * Extended experimental badge preview variants.
+ * The four evolving families are confirmed in Discord's 2026 badge directory,
+ * but fine-grained milestone names/counts come from public community indexes
+ * and can change. These are sample tier variants, not verified entitlements.
+ */
+const experimental: Array<{
+    id: string; category: string; symbol: string;
+    tiers: readonly (readonly [string, string])[];
+}> = [
+    { id: "age", category: "Account Age", symbol: "🌳", tiers: [
+        ["Seed","1 year"],["Sprout","2 years"],["Bud","3 years"],
+        ["Sapling","4 years"],["Blossom","5 years"],["Redwood","6 years"],
+        ["Sequoia","7 years"],["Bristlecone","8 years"],
+        ["Stromatolite","9 years"],["Primordial","10+ years"]
+    ] },
+    { id: "gametime", category: "Game Time", symbol: "🎮", tiers: [
+        ["Casual","1 hour"],["Recreational","5 hours"],["Dedicated","20 hours"],
+        ["Committed","75 hours"],["Serious","150 hours"],["Devoted","300 hours"],
+        ["Seasoned","500 hours"],["Ironclad","1,000 hours"],
+        ["Unshakeable","2,000 hours"],["Eternal","5,000+ hours"]
+    ] },
+    { id: "game-variety", category: "Game Variety", symbol: "🕹️", tiers: [
+        ["Sampler","2 games"],["Dabbler","5 games"],["Enthusiast","10 games"],
+        ["Ranger","15 games"],["Explorer","20 games"],["Adventurer","30 games"],
+        ["Voyager","40 games"],["Maverick","60 games"],
+        ["Polymath","80 games"],["Universalist","100+ games"]
+    ] },
+    { id: "streaming", category: "Streaming", symbol: "📺", tiers: [
+        ["Newcomer","1 hour"],["Fledgling","5 hours"],["Breakout","20 hours"],
+        ["Standout","75 hours"],["Trendsetter","150 hours"],
+        ["Headliner","300 hours"],["Star","500 hours"],
+        ["Sensation","1,000 hours"],["Visionary","2,000 hours"],
+        ["Phenomenon","5,000+ hours"]
+    ] }
+];
+
+for (const family of experimental) {
+    for (const [i, [name, threshold]] of family.tiers.entries()) {
+        BADGE_CATALOG.push(other(
+            family.id + "-tier-" + (i + 1),
+            family.category + " · " + name + " (" + threshold + ")",
+            family.category,
+            family.symbol
+        ));
+    }
+}
+
+// Preserve historical saved badge IDs, but remove duplicate browse entries.
+const unique = new Set<string>();
+export const BADGE_GROUPS = [
+    { key: "nitro", title: "Nitro subscription & evolution", hint: "Basic, Classic and all documented evolving Nitro designs" },
+    { key: "boost", title: "Server Boost milestones", hint: "Every documented continuous-boost design" },
+    { key: "gifting", title: "Gifting milestones", hint: "Six known gift-count designs" },
+    { key: "activity", title: "Quests, Orbs & activity", hint: "Current and experimental activity badges" },
+    { key: "age", title: "Account Age levels", hint: "Community-indexed experimental variants" },
+    { key: "gametime", title: "Game Time levels", hint: "Community-indexed experimental variants" },
+    { key: "variety", title: "Game Variety levels", hint: "Community-indexed experimental variants" },
+    { key: "stream", title: "Streaming levels", hint: "Community-indexed experimental variants" },
+    { key: "bug", title: "Bug Hunters", hint: "Standard and Golden Bug Hunter" },
+    { key: "staff", title: "Staff, Developers & Partners", hint: "Staff and historic community/developer recognitions" },
+    { key: "hype", title: "HypeSquad", hint: "Three Houses and HypeSquad Events" },
+    { key: "legacy", title: "Miscellaneous & legacy", hint: "Early Supporter, legacy username and special/event badges" }
+] as const;
+export type BadgeGroupKey = typeof BADGE_GROUPS[number]["key"];
+export function badgeGroupFor(id: string): BadgeGroupKey {
+    if (id === "nitro" || id.startsWith("nitro-")) return "nitro";
+    if (id.startsWith("boost")) return "boost";
+    if (id.startsWith("gifting")) return "gifting";
+    if (id.startsWith("age-tier")) return "age";
+    if (id.startsWith("gametime-tier")) return "gametime";
+    if (id.startsWith("game-variety-tier")) return "variety";
+    if (id.startsWith("streaming-tier")) return "stream";
+    if (id === "bug1" || id === "bug2") return "bug";
+    if (["staff","partner","moderator","verified-dev","active-dev"].includes(id)) return "staff";
+    if (["bravery","brilliance","balance","hypesquad"].includes(id)) return "hype";
+    if (["quest","orbs","gametime","game-variety","age","account-age","streaming","stream-tier"].includes(id)) return "activity";
+    return "legacy";
+}
+export const ALL_BADGES_BY_GROUP = BADGE_GROUPS.map(group => ({
+    ...group,
+    items: BADGE_CATALOG.filter(item => badgeGroupFor(item.id) === group.key)
+        .filter(item => {
+            if (unique.has(item.id)) return false;
+            unique.add(item.id);
+            return true;
+        })
+}));
+
 export const BADGE_IDS = new Set(BADGE_CATALOG.map(item => item.id));
 export const badgeById = (id: string) => BADGE_CATALOG.find(item => item.id === id);
