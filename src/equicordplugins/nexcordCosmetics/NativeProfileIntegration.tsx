@@ -338,6 +338,29 @@ function findEditorPortalContainer(trigger: HTMLElement | null): HTMLElement {
     return document.body;
 }
 
+/**
+ * CSS transforms on modal ancestors establish a containing block for
+ * position:fixed children. Convert viewport-relative desired position to
+ * that block's coordinates so the portal does not jump off-screen.
+ */
+function positionForEditorPortal(root: HTMLElement, left: number, top: number) {
+    let candidate: HTMLElement | null = root;
+    while (candidate && candidate !== document.documentElement) {
+        const style = getComputedStyle(candidate);
+        if (style.transform !== "none" || style.perspective !== "none" || style.filter !== "none") {
+            const rect = candidate.getBoundingClientRect();
+            const scaleX = candidate.offsetWidth ? rect.width / candidate.offsetWidth : 1;
+            const scaleY = candidate.offsetHeight ? rect.height / candidate.offsetHeight : 1;
+            return {
+                left: (left - rect.left) / (scaleX || 1),
+                top: (top - rect.top) / (scaleY || 1)
+            };
+        }
+        candidate = candidate.parentElement;
+    }
+    return { left, top };
+}
+
 function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; }) {
     const userId = UserStore.getCurrentUser()?.id;
     const trigger = React.useRef<HTMLButtonElement>(null);
@@ -421,7 +444,7 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
             const panelHeight = Math.min(570, window.innerHeight - 2 * viewportPadding);
             const top = Math.max(viewportPadding,
                 Math.min(rect.top - 18, window.innerHeight - panelHeight - viewportPadding));
-            setPosition({ left, top });
+            setPosition(positionForEditorPortal(portalContainer, left, top));
         };
         updatePosition();
         const onPointerDown = (event: PointerEvent) => {
@@ -442,7 +465,7 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
             window.removeEventListener("resize", updatePosition);
             window.removeEventListener("scroll", updatePosition, true);
         };
-    }, [open, width]);
+    }, [open, width, portalContainer]);
 
     async function apply(id: string | undefined) {
         if (!userId || busy || !customKind) return;
