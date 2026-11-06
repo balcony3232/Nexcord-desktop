@@ -764,6 +764,8 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
                                 Classic and Nitro-tier artwork: <a href="https://github.com/merlinfuchs/discord-badges"
                                 target="_blank" rel="noreferrer">Merlin</a> and <a
                                 href="https://github.com/Fmasterpro27/Discord-badges" target="_blank" rel="noreferrer">JackMa</a>
+                                and <a href="https://github.com/EliteZilla/Discord-Badges"
+                                    target="_blank" rel="noreferrer">Discord Badge Archive</a>
                                 (MIT-licensed). Local previews only; not earned badges.</p>
                         </div>
                     )}
