@@ -310,11 +310,42 @@ export function stopNativeProfileIntegration() {
     });
 }
 
+/**
+ * The native profile editor is a focus-trapped dialog. Portaling our form
+ * directly to document.body puts its inputs OUTSIDE that focus boundary:
+ * Discord immediately reclaims focus, so typing appears broken.
+ *
+ * Keep the editable form within the nearest dialog. Discord has also shipped
+ * builds without role=dialog; use the smallest visible profile-editor
+ * ancestor as a fallback, never some arbitrary chat or app container.
+ */
+function findEditorPortalContainer(trigger: HTMLElement | null): HTMLElement {
+    if (!trigger) return document.body;
+    const dialog = trigger.closest<HTMLElement>('[role="dialog"],[aria-modal="true"]');
+    if (dialog) return dialog;
+
+    let node: HTMLElement | null = trigger.parentElement;
+    while (node && node !== document.body) {
+        const rect = node.getBoundingClientRect();
+        if (rect.width >= 600 && rect.height >= 350 && rect.width <= window.innerWidth &&
+            rect.height <= window.innerHeight && node.textContent?.includes("Avatar & Decoration") &&
+            node.textContent?.includes("Profile Effect & Frame") &&
+            node.textContent?.includes("Display Name Style")) {
+            return node;
+        }
+        node = node.parentElement;
+    }
+    return document.body;
+}
+
 function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; }) {
     const userId = UserStore.getCurrentUser()?.id;
     const trigger = React.useRef<HTMLButtonElement>(null);
     const panel = React.useRef<HTMLDivElement>(null);
     const input = React.useRef<HTMLInputElement>(null);
+    const nameInput = React.useRef<HTMLInputElement>(null);
+    const usernameInput = React.useRef<HTMLInputElement>(null);
+    const [focusedField, setFocusedField] = React.useState<"none" | "display" | "username">("none");
     const [open, setOpen] = React.useState(false);
     const [busy, setBusy] = React.useState(false);
     const [error, setError] = React.useState("");
@@ -333,10 +364,19 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
     const width = 470;
     const label = kind === "decoration" ? "avatar decoration" : kind === "effect" ? "profile effect" : kind === "theme" ? "profile theme" : kind;
     const profileStyle = userId ? getLocalProfileStyle(userId) : DEFAULT_PROFILE_STYLE;
+    const portalContainer = findEditorPortalContainer(trigger.current);
     React.useEffect(() => setIdentityDraft({
         displayName: profileStyle.localDisplayName,
         username: profileStyle.localUsername
     }), [userId, profileStyle.localDisplayName, profileStyle.localUsername]);
+
+    // The form is now inside Discord's focus boundary. Focus on opening the
+    // Identity tab once; do not re-focus on every keystroke or style update.
+    React.useEffect(() => {
+        if (!open || browseKind !== "theme") return;
+        const frame = requestAnimationFrame(() => nameInput.current?.focus());
+        return () => cancelAnimationFrame(frame);
+    }, [open, browseKind]);
     async function saveProfileStyle(changes: Partial<typeof profileStyle>) {
         if (!userId || busy) return;
         setBusy(true);
@@ -458,6 +498,12 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
                     className="nexcord-native-popover"
                     style={{ width, left: position.left, top: position.top }}
                     onClick={event => event.stopPropagation()}
+                    onPointerDown={event => event.stopPropagation()}
+                    onKeyDown={event => {
+                        // Do not propagate keystrokes to Discord's profile editor,
+                        // which contains global keyboard shortcuts.
+                        if (event.key !== "Escape") event.stopPropagation();
+                    }}
                 >
                     <div className="nexcord-native-popover-title">
                         <strong>{browseKind === "banner" ? "Local Banners" :
@@ -547,8 +593,10 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
                             <h4 className="larpcord-local-identity-header">Local Name & Username</h4>
                             <label className="larpcord-local-theme-row">
                                 <span>Local display name</span>
-                                <input type="text" maxLength={32} autoComplete="off" spellCheck={false}
+                                <input ref={nameInput} type="text" maxLength={32} autoComplete="off" spellCheck={false}
                                     aria-label="Local display name" value={identityDraft.displayName}
+                                    onFocus={() => setFocusedField("display")}
+                                    onBlur={() => setFocusedField("none")}
                                     placeholder="Use real display name"
                                     onChange={event => {
                                         // React may clear currentTarget before the queued updater runs.
@@ -562,8 +610,10 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
                             </label>
                             <label className="larpcord-local-theme-row">
                                 <span>Local username</span>
-                                <input type="text" maxLength={32} autoComplete="off" spellCheck={false}
+                                <input ref={usernameInput} type="text" maxLength={32} autoComplete="off" spellCheck={false}
                                     aria-label="Local username" value={identityDraft.username}
+                                    onFocus={() => setFocusedField("username")}
+                                    onBlur={() => setFocusedField("none")}
                                     placeholder="Use real username"
                                     onChange={event => {
                                         const value = event.currentTarget.value;
@@ -573,6 +623,11 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
                                         if (event.key !== "Escape") event.stopPropagation();
                                     }}/>
                             </label>
+                            <small className="larpcord-identity-focus-status" role="status">
+                                {focusedField === "display" ? "Typing in local display name" :
+                                 focusedField === "username" ? "Typing in local username" :
+                                 "Select either field to edit your local name"}
+                            </small>
                             <button type="button" className="larpcord-local-theme-reset"
                                 disabled={busy || (identityDraft.displayName === profileStyle.localDisplayName
                                     && identityDraft.username === profileStyle.localUsername)}
@@ -659,7 +714,7 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
                         </div>
                     )}
                     {error && <p className="nexcord-native-popover-error" role="alert">{error}</p>}
-                </div>, document.body
+                </div>, portalContainer
             )}
         </>
     );
