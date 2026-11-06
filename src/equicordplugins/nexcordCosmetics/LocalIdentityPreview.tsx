@@ -105,7 +105,7 @@ function BadgeRow({userId}: {userId:string}) {
                 {b.image && <img src={b.image} alt="" onError={e => e.currentTarget.style.display = "none"}/>}
             </span>)}
             {!chosen.length && profile.badge !== "none" && <span className="larpcord-native-badge" title="Local decorative badge">✦</span>}
-            <small title="These badges are only visible on this device">LOCAL</small>
+            {/* On-device status is disclosed in the picker and tooltips. */}
         </span>
     );
 }
@@ -127,7 +127,7 @@ function AvatarLayer({userId}: {userId:string}) {
             if (url !== selection.previewUrl && selection.previewUrl) setUrl(selection.previewUrl);
             else setUrl("");
         }}/>}
-        <span>LOCAL</span>
+        {/* No extra caption over the avatar. */}
     </div>;
 }
 function FrameEdge({userId}: {userId:string}) {
@@ -140,10 +140,10 @@ function FrameEdge({userId}: {userId:string}) {
     const profile = getLocalProfileStyle(userId);
     return (
         <div className="larpcord-native-frame" aria-hidden="true"
-            style={{borderColor:profile.accent}}>
+            style={{borderColor:profile.accent}} data-frame-name={frame.name}>
             <div className="larpcord-native-frame-texture"
                 style={art ? { backgroundImage: "url(" + JSON.stringify(art) + ")" } : undefined}/>
-            <small>LOCAL FRAME · {frame.name}</small>
+            {/* Frame selection and status remain in the picker. */}
         </div>
     );
 }

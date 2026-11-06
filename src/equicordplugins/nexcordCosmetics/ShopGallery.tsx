@@ -214,7 +214,7 @@ export function ShopGallery({
                         <small>{activeKind === "nameplate"
                             ? "Locally applied to your editor, self popout and member row."
                              : activeKind === "frame"
-                                ? "Frame artwork preview is shown on your own profile. Real collectibles remain unchanged."
+                                ? "An edge-only profile frame appears in your profile preview. Real collectibles remain unchanged."
                                 : activeKind === "decoration"
                                 ? "Decoration thumbnail appears locally in the native profile editor."
                                 : "An effect overlay is shown locally when animation assets are available."}</small>
@@ -222,7 +222,7 @@ export function ShopGallery({
                 </div>
             )}
             <p className="nexcord-shop-gallery-info">Some retired, event-exclusive or unavailable items may not appear. Preview images are loaded from Discord’s CDN when viewed.</p>
-            {activeKind === "frame" && <p className="nexcord-shop-gallery-info">Selected frame artwork is displayed as a local labelled preview; it does not equip a real Discord collectible.</p>}
+            {activeKind === "frame" && <p className="nexcord-shop-gallery-info">Shop artwork approximates a profile border. Exact animated frame rendering needs additional assets and is not yet supported. No real collectible is equipped.</p>}
         </div>
     );
 }

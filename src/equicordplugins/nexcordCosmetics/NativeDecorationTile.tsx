@@ -33,12 +33,19 @@ function LocalDecorationPreview({ userId }: { userId: string; }) {
     const [, rerender] = React.useReducer((n: number) => n + 1, 0);
     React.useEffect(() => subscribeShop(rerender), []);
     const decoration = getShopSelection(userId, "decoration");
-    const thumbnail = decoration?.previewUrl ?? decoration?.animatedPreviewUrl;
+    const asset = decoration?.asset;
+    const realAsset = typeof asset === "string" && /^(?:a_)?[0-9a-f]{16,80}$/i.test(asset)
+        ? "https://cdn.discordapp.com/avatar-decoration-presets/" + asset + ".png?size=256"
+        : undefined;
+    const thumbnail = realAsset ?? decoration?.previewUrl ?? decoration?.animatedPreviewUrl;
     if (!thumbnail) return null;
     return (
         <span className="larpcord-local-decoration-preview" aria-hidden="true" title={decoration?.name}>
-            <img src={thumbnail} loading="lazy" draggable={false} alt="" />
-            <small>LOCAL PREVIEW</small>
+            <img src={thumbnail} loading="lazy" draggable={false} alt=""
+                onError={event => {
+                    const backup = decoration?.previewUrl;
+                    if (backup && event.currentTarget.src !== backup) event.currentTarget.src = backup;
+                }}/>
         </span>
     );
 }
