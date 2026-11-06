@@ -313,57 +313,8 @@ export function stopNativeProfileIntegration() {
     });
 }
 
-/**
- * The native profile editor is a focus-trapped dialog. Portaling our form
- * directly to document.body puts its inputs OUTSIDE that focus boundary:
- * Discord immediately reclaims focus, so typing appears broken.
- *
- * Keep the editable form within the nearest dialog. Discord has also shipped
- * builds without role=dialog; use the smallest visible profile-editor
- * ancestor as a fallback, never some arbitrary chat or app container.
- */
-function findEditorPortalContainer(trigger: HTMLElement | null): HTMLElement {
-    if (!trigger) return document.body;
-    const dialog = trigger.closest<HTMLElement>('[role="dialog"],[aria-modal="true"]');
-    if (dialog) return dialog;
-
-    let node: HTMLElement | null = trigger.parentElement;
-    while (node && node !== document.body) {
-        const rect = node.getBoundingClientRect();
-        if (rect.width >= 600 && rect.height >= 350 && rect.width <= window.innerWidth &&
-            rect.height <= window.innerHeight && node.textContent?.includes("Avatar & Decoration") &&
-            node.textContent?.includes("Profile Effect & Frame") &&
-            node.textContent?.includes("Display Name Style")) {
-            return node;
-        }
-        node = node.parentElement;
-    }
-    return document.body;
-}
-
-/**
- * CSS transforms on modal ancestors establish a containing block for
- * position:fixed children. Convert viewport-relative desired position to
- * that block's coordinates so the portal does not jump off-screen.
- */
-function positionForEditorPortal(root: HTMLElement, left: number, top: number) {
-    let candidate: HTMLElement | null = root;
-    while (candidate && candidate !== document.documentElement) {
-        const style = getComputedStyle(candidate);
-        if (style.transform !== "none" || style.perspective !== "none" || style.filter !== "none") {
-            const rect = candidate.getBoundingClientRect();
-            const scaleX = candidate.offsetWidth ? rect.width / candidate.offsetWidth : 1;
-            const scaleY = candidate.offsetHeight ? rect.height / candidate.offsetHeight : 1;
-            return {
-                left: (left - rect.left) / (scaleX || 1),
-                top: (top - rect.top) / (scaleY || 1)
-            };
-        }
-        candidate = candidate.parentElement;
-    }
-    return { left, top };
-}
-
+/** The Larpcord picker uses a browser top-layer dialog to avoid
+ * Discord profile editor overlays stealing pointer and keyboard events. */
 function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; }) {
     const userId = UserStore.getCurrentUser()?.id;
     const trigger = React.useRef<HTMLButtonElement>(null);
