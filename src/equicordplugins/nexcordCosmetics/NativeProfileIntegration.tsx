@@ -373,6 +373,12 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
         };
     }, [open]);
 
+    // Discard the detached dialog target after closing so a later reopen
+    // cannot briefly render into a stale DOM node.
+    React.useEffect(() => {
+        if (!open && dialogHost) setDialogHost(null);
+    }, [open, dialogHost]);
+
     React.useEffect(() => setIdentityDraft({
         displayName: profileStyle.localDisplayName,
         username: profileStyle.localUsername
