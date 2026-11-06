@@ -93,3 +93,11 @@ GitHub Actions workflow: `.github/workflows/larpcord-desktop.yml` on `larpcord-d
 - Disable Save when unchanged and provide explicit unsaved-change feedback.
 - This is a focused regression fix. Official Discord account names, messages and server data are never changed.
 - The result is not considered fully verified until a user can type, save, reopen and restart the actual Windows client.
+
+## v0.1.8 — Fix Local Name Input Focus (test release)
+
+- Move My Custom portal inside the Discord Profile Editor dialog to address native focus trapping.
+- Handle transformed modal positioning and stop keyboard shortcut propagation while editing local names.
+- Automatically focus the name input and show focus status plus a live draft preview.
+- Preserves all previously selected cosmetics; no Discord account changes.
+- Awaiting Windows validation of typing, saving, reopening and restarting.
