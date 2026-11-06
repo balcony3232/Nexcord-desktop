@@ -368,6 +368,10 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
     const userId = UserStore.getCurrentUser()?.id;
     const trigger = React.useRef<HTMLButtonElement>(null);
     const panel = React.useRef<HTMLDivElement>(null);
+    // A browser-native modal sits in the top layer above Discord's own
+    // profile editor. This avoids the profile editor intercepting clicks
+    // and trapping focus in the wrong React/modal container.
+    const [dialogHost, setDialogHost] = React.useState<HTMLDialogElement | null>(null);
     const input = React.useRef<HTMLInputElement>(null);
     const nameInput = React.useRef<HTMLInputElement>(null);
     const usernameInput = React.useRef<HTMLInputElement>(null);
@@ -391,7 +395,33 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
     const width = 470;
     const label = kind === "decoration" ? "avatar decoration" : kind === "effect" ? "profile effect" : kind === "theme" ? "profile theme" : kind;
     const profileStyle = userId ? getLocalProfileStyle(userId) : DEFAULT_PROFILE_STYLE;
-    const portalContainer = findEditorPortalContainer(trigger.current);
+    React.useEffect(() => {
+        if (!open) return;
+        const dialog = document.createElement("dialog");
+        dialog.className = "larpcord-native-cosmetic-dialog";
+        dialog.setAttribute("aria-label", "Larpcord cosmetic picker");
+        const onCancel = (event: Event) => {
+            event.preventDefault();
+            setOpen(false);
+        };
+        dialog.addEventListener("cancel", onCancel);
+        document.body.appendChild(dialog);
+        try {
+            dialog.showModal();
+        } catch (error) {
+            logger.warn("Could not open native cosmetic dialog", error);
+            dialog.remove();
+            setOpen(false);
+            return;
+        }
+        setDialogHost(dialog);
+        return () => {
+            dialog.removeEventListener("cancel", onCancel);
+            if (dialog.open) dialog.close();
+            dialog.remove();
+        };
+    }, [open]);
+
     React.useEffect(() => setIdentityDraft({
         displayName: profileStyle.localDisplayName,
         username: profileStyle.localUsername
@@ -400,10 +430,10 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
     // The form is now inside Discord's focus boundary. Focus on opening the
     // Identity tab once; do not re-focus on every keystroke or style update.
     React.useEffect(() => {
-        if (!open || browseKind !== "theme") return;
+        if (!open || !dialogHost || browseKind !== "theme") return;
         const frame = requestAnimationFrame(() => nameInput.current?.focus());
         return () => cancelAnimationFrame(frame);
-    }, [open, browseKind]);
+    }, [open, dialogHost, browseKind]);
     async function saveProfileStyle(changes: Partial<typeof profileStyle>) {
         if (!userId || busy) return;
         setBusy(true);
@@ -436,7 +466,7 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
     }
 
     React.useEffect(() => {
-        if (!open) return;
+        if (!open || !dialogHost) return;
         const updatePosition = () => {
             const rect = trigger.current?.getBoundingClientRect();
             if (!rect) return;
@@ -452,25 +482,26 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
             const panelHeight = Math.min(570, window.innerHeight - 2 * viewportPadding);
             const top = Math.max(viewportPadding,
                 Math.min(rect.top - 18, window.innerHeight - panelHeight - viewportPadding));
-            setPosition(positionForEditorPortal(portalContainer, left, top));
+            setPosition({ left, top });
         };
         updatePosition();
         // Discord's profile editor uses its own popovers, focus traps and
         // pointer capture. A global click-away listener misidentified clicks
         // *inside* the picker and dismissed it before the selected item saved.
         // Only explicit close/trigger-toggle/Escape should dismiss this panel.
-        const onKeyDown = (event: KeyboardEvent) => {
-            if (event.key === "Escape") setOpen(false);
-        };
-        document.addEventListener("keydown", onKeyDown);
+        // Escape is handled by the browser dialog's cancel event, rather than
+        // propagating through Discord's own modal keyboard handlers.
         window.addEventListener("resize", updatePosition);
-        window.addEventListener("scroll", updatePosition, true);
         return () => {
-            document.removeEventListener("keydown", onKeyDown);
             window.removeEventListener("resize", updatePosition);
-            window.removeEventListener("scroll", updatePosition, true);
         };
-    }, [open, width, portalContainer]);
+    }, [open, width, dialogHost]);
+
+    React.useEffect(() => {
+        if (!dialogHost) return;
+        dialogHost.style.left = position.left + "px";
+        dialogHost.style.top = position.top + "px";
+    }, [dialogHost, position.left, position.top]);
 
     async function apply(id: string | undefined) {
         if (!userId || busy || !customKind) return;
@@ -518,11 +549,11 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
             >
                 My Custom
             </button>
-            {open && ReactDOM.createPortal(
+            {open && dialogHost && ReactDOM.createPortal(
                 <div
                     ref={panel}
                     className="nexcord-native-popover"
-                    style={{ width, left: position.left, top: position.top }}
+                    style={{ width }}
                     onClick={event => event.stopPropagation()}
                     onPointerDown={event => event.stopPropagation()}
                     onKeyDown={event => {
@@ -770,7 +801,7 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
                         </div>
                     )}
                     {error && <p className="nexcord-native-popover-error" role="alert">{error}</p>}
-                </div>, portalContainer
+                </div>, dialogHost
             )}
         </>
     );
