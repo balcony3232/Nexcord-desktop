@@ -367,7 +367,12 @@ export async function loadShopSelections() {
     return selectionsLoading;
 }
 export function getShopSelection(userId: string | undefined, kind: ShopKind): ShopItem | undefined {
-    return userId ? selections[userId]?.[kind] : undefined;
+    const selected = userId ? selections[userId]?.[kind] : undefined;
+    if (!selected) return;
+    // Saved local previews from the old catalogue may still carry the bundle
+    // showcase art. Prefer the refreshed individual SKU metadata in memory.
+    return cached?.items.find(item => item.kind === kind && item.skuId === selected.skuId)
+        ?? selected;
 }
 export async function applyShopItem(userId: string, kind: ShopKind, item?: ShopItem) {
     if (!/^\d{15,22}$/.test(userId)) throw new Error("Invalid user ID");
