@@ -116,6 +116,10 @@ export function ShopGallery({
 
     async function select(item?: ShopItem) {
         if (busy) return;
+        if (item && activeKind === "frame" && !item.previewUrl && !item.animatedPreviewUrl) {
+            setError("This individual frame has no usable preview artwork yet. Choose another frame.");
+            return;
+        }
         setBusy(true);
         setError("");
         setFeedback("");
@@ -196,8 +200,8 @@ export function ShopGallery({
                         onClick={() => void select(item)}>
                         {activeKind === "nameplate"
                             ? <NameplateArtwork item={item} userId={userId} compact />
-                            : item.previewUrl
-                                ? <img loading="lazy" src={item.previewUrl} alt="" />
+                            : (item.previewUrl ?? item.animatedPreviewUrl)
+                                ? <img loading="lazy" src={item.previewUrl ?? item.animatedPreviewUrl} alt="" />
                             : <span className="nexcord-shop-none">✦</span>}
                         <small>{item.name}</small>
                         {selected?.skuId === item.skuId && <span className="nexcord-shop-card-check" aria-hidden="true">✓</span>}
@@ -219,8 +223,8 @@ export function ShopGallery({
                 <div className="nexcord-shop-selected-preview">
                     {activeKind === "nameplate"
                         ? <NameplateArtwork item={selected} userId={userId} compact />
-                        : selected.previewUrl
-                            ? <img src={selected.previewUrl} alt="" />
+                        : (selected.previewUrl ?? selected.animatedPreviewUrl)
+                            ? <img src={selected.previewUrl ?? selected.animatedPreviewUrl} alt="" />
                         : <span className="nexcord-shop-preview-placeholder">✦</span>}
                     <div>
                         <strong>{selected.name}</strong>
@@ -235,7 +239,7 @@ export function ShopGallery({
                     </div>
                 </div>
             )}
-            <p className="nexcord-shop-gallery-info">Some retired, event-exclusive or unavailable items may not appear. Preview images are loaded from Discord’s CDN when viewed.</p>
+            <p className="nexcord-shop-gallery-info">Showing individual cosmetics from Discord's current Shop feed rather than bundle posters. Retired or unavailable cosmetics may not be returned. Images load on demand.</p>
             {activeKind === "frame" && <p className="nexcord-shop-gallery-info">Shop artwork approximates a profile border. Exact animated frame rendering needs additional assets and is not yet supported. No real collectible is equipped.</p>}
         </div>
     );
