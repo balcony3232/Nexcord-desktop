@@ -132,12 +132,13 @@ function AvatarLayer({userId}: {userId:string}) {
 }
 function FrameEdge({userId}: {userId:string}) {
     const [, refresh] = React.useReducer((v:number)=>v+1,0);
-    React.useEffect(()=>subscribeShop(refresh),[]);
+    React.useEffect(() => subscribeShop(refresh), []);
+    React.useEffect(() => subscribeProfileStyles(refresh), []);
     const frame = getShopSelection(userId, "frame");
-    if (!frame) return null;
-    const art = frame.previewUrl ?? frame.animatedPreviewUrl;
-    React.useEffect(()=>subscribeProfileStyles(refresh),[]);
     const profile = getLocalProfileStyle(userId);
+    if (!frame) return null;
+    // This image must be the individual Frame item (never the bundle poster).
+    const art = frame.previewUrl ?? frame.animatedPreviewUrl;
     return (
         <div className="larpcord-native-frame" aria-hidden="true"
             style={{borderColor:profile.accent}} data-frame-name={frame.name}>
