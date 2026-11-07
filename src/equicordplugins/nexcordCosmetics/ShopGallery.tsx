@@ -63,7 +63,8 @@ export function ShopGallery({
     allowFrames?: boolean;
 }) {
     const [search, setSearch] = React.useState("");
-    const [visibleLimit, setVisibleLimit] = React.useState(60);
+    const [visibleLimit, setVisibleLimit] = React.useState(50);
+    const scrollBox = React.useRef<HTMLDivElement>(null);
     const [activeKind, setActiveKind] = React.useState<ShopKind>(kind);
     const [busy, setBusy] = React.useState(false);
     const [loaded, setLoaded] = React.useState(false);
@@ -89,6 +90,12 @@ export function ShopGallery({
     const selected = activeKind === "nameplate" && saved
         ? all.find(item => item.skuId === saved.skuId) ?? saved : saved;
     const shown = options.slice(0, visibleLimit);
+    // Render 50 thumbnail cards at a time; still search the entire catalogue.
+    const revealOnScroll = (element: HTMLDivElement) => {
+        if (element.scrollTop + element.clientHeight >= element.scrollHeight - 150) {
+            setVisibleLimit(count => Math.min(options.length, count + 50));
+        }
+    };
 
     async function refreshCatalog() {
         if (busy) return;
@@ -160,13 +167,20 @@ export function ShopGallery({
                 aria-label={"Search Discord Shop " + activeKind + "s"}
                 placeholder={"Search " + activeKind + "s"}
                 value={search}
-                onChange={event => {setSearch(event.currentTarget.value);setVisibleLimit(60);}}
+                onChange={event => {
+                    const next = event.currentTarget.value;
+                    setSearch(next);
+                    setVisibleLimit(50);
+                    if (scrollBox.current) scrollBox.current.scrollTop = 0;
+                }}
             />
             <div className="nexcord-shop-gallery-count">
-                {loaded || all.length ? all.length + " available · " : "Loading catalogue · "}
-                {Math.min(visibleLimit,options.length) + " of " + options.length + " shown"}
+                {loaded || all.length ? all.length + " individual " + activeKind + "s · " : "Loading catalogue · "}
+                {Math.min(visibleLimit,options.length) + " of " + options.length + " rendered"}
+                {options.length > visibleLimit && " · Scroll to load the next 50"}
             </div>
-            <div className="nexcord-shop-gallery-grid">
+            <div ref={scrollBox} className="nexcord-shop-gallery-grid"
+                onScroll={event => revealOnScroll(event.currentTarget)}>
                 <button type="button" disabled={busy}
                     className={!selected ? "nexcord-shop-gallery-selected" : ""}
                     onClick={() => void select(undefined)}
@@ -175,7 +189,7 @@ export function ShopGallery({
                     <small>None</small>
                 </button>
                 {shown.map(item => (
-                    <button type="button" key={item.skuId} disabled={busy}
+                    <button type="button" key={item.kind + ":" + item.skuId} disabled={busy}
                         title={item.name + " — select a local preview"}
                         aria-pressed={selected?.skuId === item.skuId}
                         className={selected?.skuId === item.skuId ? "nexcord-shop-gallery-selected" : ""}
@@ -192,8 +206,8 @@ export function ShopGallery({
             </div>
             {options.length > visibleLimit && (
                 <button type="button" className="nexcord-shop-gallery-more"
-                    onClick={() => setVisibleLimit(limit => limit + 60)}>
-                    Show more ({Math.min(60, options.length - visibleLimit)} additional)
+                    onClick={() => setVisibleLimit(limit => Math.min(options.length, limit + 50))}>
+                    Load next {Math.min(50, options.length - visibleLimit)} (or scroll down)
                 </button>
             )}
             {activeKind === "effect" && selected && <EffectAssetStatus item={selected} catalogLoaded={loaded || all.length > 0} revision={catalogRevision} />}
