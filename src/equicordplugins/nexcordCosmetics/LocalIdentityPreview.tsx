@@ -102,7 +102,7 @@ function BadgeRow({userId}: {userId:string}) {
             {chosen.map(b => <span className="larpcord-native-badge" key={b.id}
                 title={b.name + " — Larpcord local preview (not an earned Discord badge)"}>
                 <span>{b.symbol}</span>
-                {b.image && <img src={b.image} alt="" onError={e => e.currentTarget.style.display = "none"}/>}
+                {b.image && <img loading="lazy" src={b.image} alt="" onError={e => e.currentTarget.style.display = "none"}/>}
             </span>)}
             {!chosen.length && profile.badge !== "none" && <span className="larpcord-native-badge" title="Local decorative badge">✦</span>}
             {/* On-device status is disclosed in the picker and tooltips. */}
