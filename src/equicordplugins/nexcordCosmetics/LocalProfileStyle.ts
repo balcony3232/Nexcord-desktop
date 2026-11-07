@@ -4,7 +4,7 @@
  * These are cosmetic previews, NOT Discord entitlements or user properties.
  */
 import * as DataStore from "@api/DataStore";
-import { BADGE_IDS } from "./BadgeCatalog";
+import { BADGE_CATALOG, BADGE_IDS } from "./BadgeCatalog";
 
 const KEY = "larpcord.self-profile-style.v1";
 export type LocalBadge = "none" | "star" | "heart" | "moon" | "cat";
@@ -40,7 +40,8 @@ function clean(value: unknown): LocalProfileStyle {
         accent: isHex(o.accent) ? o.accent.toUpperCase() : DEFAULT_PROFILE_STYLE.accent,
         background: isHex(o.background) ? o.background.toUpperCase() : DEFAULT_PROFILE_STYLE.background,
         badge: badges.includes(o.badge as LocalBadge) ? o.badge as LocalBadge : "none",
-        badges: Array.isArray(o.badges) ? [...new Set(o.badges.filter((id): id is string => typeof id === "string" && BADGE_IDS.has(id)))].slice(0, 6) : [],
+        badges: Array.isArray(o.badges) ? [...new Set(o.badges.filter((id): id is string =>
+            typeof id === "string" && BADGE_IDS.has(id)))].slice(0, BADGE_CATALOG.length) : [],
         localDisplayName: typeof o.localDisplayName === "string" ? o.localDisplayName.trim().slice(0, 32) : "",
         localUsername: typeof o.localUsername === "string" ? o.localUsername.trim().slice(0, 32) : ""
     };
