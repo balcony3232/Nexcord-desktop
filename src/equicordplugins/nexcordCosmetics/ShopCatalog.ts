@@ -117,8 +117,8 @@ function normalize(product: Record<string, any>, raw: Record<string, any>, categ
         ? baseName + " (" + variant.replace(/\b\w/g, c => c.toUpperCase()) + ")"
         : baseName;
     const name = (kind === "nameplate"
-        ? (string(raw.title) ?? string(raw.label) ?? individualName ?? specificName)
-        : (string(raw.title) ?? string(raw.label) ?? individualName
+        ? (string(raw.title) ?? individualName ?? string(raw.label) ?? specificName)
+        : (string(raw.title) ?? individualName ?? string(raw.label)
             ?? (isBundle ? undefined : string(product.name)) ?? "Discord cosmetic")
     ).slice(0, 120);
     // A native nameplate needs the asset and palette, not just a picture.
