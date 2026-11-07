@@ -661,7 +661,10 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
                                 <strong>{identityDraft.displayName || UserStore.getCurrentUser()?.globalName || UserStore.getCurrentUser()?.username || "You"}</strong>
                                 <small>@{identityDraft.username || UserStore.getCurrentUser()?.username || "you"}</small>
                                 {(profileStyle.badges.length > 0 || profileStyle.badge !== "none") &&
-                                    <small>✦ {(profileStyle.badges.map(id => badgeById(id)?.name).filter(Boolean).join(", ") || profileStyle.badge).toUpperCase()} · LOCAL</small>}
+                                    <small>✦ {profileStyle.badges.length
+                                        ? (profileStyle.badges.slice(0, 3).map(id => badgeById(id)?.name).filter(Boolean).join(", ")
+                                            + (profileStyle.badges.length > 3 ? " +" + (profileStyle.badges.length - 3) + " more" : ""))
+                                        : profileStyle.badge.toUpperCase()} · LOCAL</small>}
                             </div>
                             <label className="larpcord-local-theme-row">
                                 <span>Enable local profile theme</span>
@@ -740,8 +743,18 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
                                 ))}
                             </div>
                             <small>{activeBadges.length} selected · {BADGE_IDS.size} available · Local preview only</small>
-                            <button type="button" className="larpcord-local-theme-reset" disabled={busy || !activeBadges.length}
-                                onClick={() => void saveProfileStyle({badges:[],badge:"none"})}>Clear Local Badges</button>
+                            <div className="larpcord-badge-bulk-actions">
+                                <button type="button" className="larpcord-local-theme-reset"
+                                    disabled={busy || activeBadges.length === BADGE_IDS.size}
+                                    onClick={() => void saveProfileStyle({badges:[...BADGE_IDS]})}>
+                                    Select all {BADGE_IDS.size}
+                                </button>
+                                <button type="button" className="larpcord-local-theme-reset"
+                                    disabled={busy || !activeBadges.length}
+                                    onClick={() => void saveProfileStyle({badges:[],badge:"none"})}>
+                                    Clear all badges
+                                </button>
+                            </div>
                             <p>Experimental milestone labels are community-indexed and may change. For the confirmed badge families, see
                                 <a href="https://support.discord.com/hc/en-us/articles/44369363856663-Discord-Profile-Badges-What-Each-Badge-Means"
                                     target="_blank" rel="noreferrer">Discord's official badge guide</a>.
