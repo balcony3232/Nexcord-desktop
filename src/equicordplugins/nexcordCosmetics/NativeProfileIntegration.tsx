@@ -14,7 +14,7 @@ import type { Root } from "react-dom/client";
 import { applyAsset, getAppearance, importAsset, listAssets, loadCosmetics, subscribe } from "./storage";
 import { DEFAULT_PROFILE_STYLE, getLocalProfileStyle, loadProfileStyles, setLocalProfileStyle, subscribeProfileStyles } from "./LocalProfileStyle";
 import type { LocalBadge } from "./LocalProfileStyle";
-import { ALL_BADGES_BY_GROUP, badgeById } from "./BadgeCatalog";
+import { ALL_BADGES_BY_GROUP, BADGE_IDS, badgeById } from "./BadgeCatalog";
 import type { CosmeticKind } from "./storage";
 import type { ShopKind } from "./ShopCatalog";
 import { ShopGallery } from "./ShopGallery";
@@ -414,10 +414,6 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
             (item.name + " " + item.category).toLowerCase().includes(badgeQuery))
     })).filter(group => group.items.length && (badgeQuery || badgeGroup === group.key));
     async function toggleBadge(id: string) {
-        if (!activeBadges.includes(id) && activeBadges.length >= 6) {
-            setError("Select up to six local badge previews.");
-            return;
-        }
         await saveProfileStyle({badges: activeBadges.includes(id)
             ? activeBadges.filter(x => x !== id) : [...activeBadges, id]});
     }
@@ -702,7 +698,7 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
                     )}
                     {browseKind === "badges" && (
                         <div className="larpcord-badges-browser">
-                            <p>Browse documented badge families and their evolving tiers. Choose up to six preview badges; these do not grant Discord status or account entitlements.</p>
+                            <p>Choose as many local preview badges as you want, from any category. Your selected badges are shown in a scrollable section of your profile; Discord account entitlements are unchanged.</p>
                             <input type="search" aria-label="Search available badge previews"
                                 placeholder="Search badges…" value={badgeSearch}
                                 onChange={e => setBadgeSearch(e.currentTarget.value)}/>
@@ -743,7 +739,7 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
                                     </section>
                                 ))}
                             </div>
-                            <small>{activeBadges.length}/6 selected · Local preview only</small>
+                            <small>{activeBadges.length} selected · {BADGE_IDS.size} available · Local preview only</small>
                             <button type="button" className="larpcord-local-theme-reset" disabled={busy || !activeBadges.length}
                                 onClick={() => void saveProfileStyle({badges:[],badge:"none"})}>Clear Local Badges</button>
                             <p>Experimental milestone labels are community-indexed and may change. For the confirmed badge families, see
