@@ -129,3 +129,16 @@ GitHub Actions workflow: `.github/workflows/larpcord-desktop.yml` on `larpcord-d
 - Remove obsolete portal positioning code, isolate the dialog styles, and safely clean up the modal when closing.
 - Badge library, saved cosmetics, selections, and real Discord account data are unchanged.
 - **Manual acceptance needed:** the automated client build cannot simulate the current Discord UI's pointer/focus behaviour. Confirm clicking tabs, selecting badges, typing local names and closing/reopening works.
+
+## v0.1.11 — Individual Shop Items, Infinite Scroll, Badges & Frame Fix (test build)
+
+- Correct Discord collectible parsing to prioritise the individual item's SKU, accessible name and preview assets. Never use the parent Shop bundle poster as the preview for an individual frame, decoration, nameplate or effect.
+- Exclude unidentifiable bundle children; re-key Shop catalogue cache so existing stale bundle preview images are refreshed, and prefer newly parsed individual SKU metadata when rendering saved selections.
+- Increase maximum parsed catalogue items to 5,000 for sizeable Shop feeds. This is an in-memory safety cap, not an assertion that Discord exposes every historical item.
+- Gallery renders 50 entries at first, appends 50 more when scrolled to near the bottom, resets to 50 upon a new search, and offers a keyboard-accessible Load Next control. Search covers ALL items returned in the current Shop feed.
+- Remove the artificial six-badge cap in both picker and persisted per-user settings. Select individual badges, Select All (all currently available in the catalogue), or Clear All. Badge row is compact, wraps and scrolls with lazy-loaded artwork so any available badge can be viewed.
+- Fix a React rules-of-hooks violation that could break local Profile Frames on equip/remove; remove conditional hook registration from the frame renderer.
+- Frame selection prioritises actual individual frame artwork rather than bundle posters. When a frame has no usable preview artwork, the picker now reports that limitation rather than claiming it is rendered.
+- Existing saved cosmetics, real Discord account entitlements, Profile Editor functionality, theme preferences and the independent Windows installation are unaffected by this local-only change.
+
+**Known limitation:** native animated Profile Frames are layered assets, not ordinary Shop thumbnails; faithfully rendering every layer is separate work. v0.1.11 improves item-specific static previews and hook stability but does not claim full native frame-equipping.

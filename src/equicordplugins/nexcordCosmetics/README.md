@@ -112,3 +112,11 @@ My Custom gallery remains open while interacting; close explicitly with the × b
 Profile badges, frame artwork and avatar decoration overlays no longer include printed LOCAL stamps. These changes are exclusively on-device previews; actual Discord account badges, purchases, names and user information are not affected. The picker explicitly explains this, and badge tooltips provide a local-preview clarification.
 
 Frame preview artwork now appears in the native Frame tile (visual-only, pointer-events disabled). Full native animation requires actual frame assets rather than Shop catalogue thumbnails and is not implemented.
+
+## v0.1.11 — Shop catalogue & badge improvements
+
+The Shop parser now distinguishes individual collectible SKUs from bundles and uses individual item preview assets when available. Current catalogue results are delivered in 50-item scroll batches; typing in search queries searches the full fetched item list, not merely the first rendered 50. Only results returned by Discord's Shop API are available (including possible exclusions of retired items).
+
+Badges have **no six-badge cap**. Any/all of the badge catalogue's current entries can be selected simultaneously. The profile row wraps and scrolls rather than forcing a huge profile layout; the badge picker offers Select All and Clear All.
+
+The local frame renderer's previously conditional React hook has been fixed. Frames use individual artwork where available; native multi-layer animated frames require deeper renderer integration and remain unsupported. No Discord purchase or account-entitlement modification occurs.
