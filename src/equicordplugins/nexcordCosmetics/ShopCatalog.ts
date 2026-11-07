@@ -32,10 +32,10 @@ export type ShopItem = {
 };
 
 // Refresh cached entries when their individual/bundle SKU schema changes.
-const CACHE_KEY = "nexcord.collectibles-catalog.v4";
+const CACHE_KEY = "nexcord.collectibles-catalog.v5";
 const SELECT_KEY = "nexcord.collectibles-selected.v1";
 const ONE_DAY = 24 * 60 * 60 * 1000;
-const MAX_PRODUCTS = 1500;
+const MAX_PRODUCTS = 5000;
 const MAX_SELECTIONS = 500;
 const SHOP_ASSETS = /^https:\/\/(?:cdn\.discordapp\.com|media\.discordapp\.com|media\.discordapp\.net)\//i;
 
@@ -69,14 +69,19 @@ function safeImage(value: unknown): string | undefined {
     return typeof value === "string" && SHOP_ASSETS.test(value) && value.length < 700
         ? value : undefined;
 }
-function previewFor(item: Record<string, any>, product: Record<string, any>): string | undefined {
-    const assets = record(product.preview_assets) ?? record(product.previewAssets) ?? {};
+function previewFor(item: Record<string, any>, individualProduct?: Record<string, any>): string | undefined {
     const media = record(item.assets) ?? {};
-    return safeImage(assets.fg_static) ?? safeImage(assets.fgStatic)
-        ?? safeImage(assets.bg_static) ?? safeImage(assets.bgStatic)
+    // The actual cosmetic takes precedence over its product card. Bundles
+    // display collages and must NEVER be used as an individual preview.
+    const direct = safeImage(media.static_image_url) ?? safeImage(media.staticImageUrl)
+        ?? safeImage(media.animated_image_url) ?? safeImage(media.animatedImageUrl)
         ?? safeImage(item.thumbnailPreviewSrc) ?? safeImage(item.thumbnail_preview_src)
-        ?? safeImage(item.staticFrameSrc) ?? safeImage(item.static_frame_src)
-        ?? safeImage(media.static_image_url) ?? safeImage(media.animated_image_url);
+        ?? safeImage(item.staticFrameSrc) ?? safeImage(item.static_frame_src);
+    if (direct) return direct;
+    const assets = record(individualProduct?.preview_assets)
+        ?? record(individualProduct?.previewAssets) ?? {};
+    return safeImage(assets.fg_static) ?? safeImage(assets.fgStatic)
+        ?? safeImage(assets.bg_static) ?? safeImage(assets.bgStatic);
 }
 function normalize(product: Record<string, any>, raw: Record<string, any>, category?: string): ShopItem | undefined {
     const type = raw.type;
@@ -84,17 +89,25 @@ function normalize(product: Record<string, any>, raw: Record<string, any>, categ
         type === 0 ? "decoration" : type === 1 ? "effect" :
         type === 2 ? "nameplate" : type === 3 ? "frame" : undefined;
     if (!kind) return;
-    const id = sku(raw.sku_id) ?? sku(raw.skuId) ?? sku(product.sku_id) ?? sku(product.skuId);
+    const id = sku(raw.sku_id) ?? sku(raw.skuId)
+        ?? (product.type === 1000 ? undefined : sku(product.sku_id) ?? sku(product.skuId));
     if (!id) return;
     // A bundle can contain multiple separately-rendered cosmetics.
     // Name each option for its individual item, not just its enclosing bundle.
     const members = (Array.isArray(product.bundled_products) ? product.bundled_products
         : Array.isArray(product.bundledProducts) ? product.bundledProducts : []) as Record<string, any>[];
-    const matchingMember = members.find(member => sku(member.sku_id) === id || sku(member.skuId) === id);
+    const matchingMember = members.find(member =>
+        sku(member.sku_id) === id || sku(member.skuId) === id
+        || (Array.isArray(member.items) && member.items.some((part: Record<string, any>) =>
+            sku(part.sku_id) === id || sku(part.skuId) === id)));
+    const isBundle = product.type === 1000;
+    // A bundle containing a cosmetic isn't the cosmetic itself. Require an
+    // identifiable child item and never use its parent thumbnail or SKU.
+    if (isBundle && !matchingMember && !string(raw.title) && !string(raw.label)) return;
     const asset = string(raw.asset);
     const palette = string(raw.palette);
     const individualName = string(matchingMember?.name)
-        ?? (product.type !== 1000 ? string(product.name) : undefined);
+        ?? (!isBundle ? string(product.name) : undefined);
     // Nameplates commonly have a descriptive accessibility `label` rather
     // than a product title. Never use the parent bundle's showcase name when
     // the item has its own SKU and an identifiable name.
@@ -104,8 +117,9 @@ function normalize(product: Record<string, any>, raw: Record<string, any>, categ
         ? baseName + " (" + variant.replace(/\b\w/g, c => c.toUpperCase()) + ")"
         : baseName;
     const name = (kind === "nameplate"
-        ? (individualName ?? string(raw.title) ?? specificName)
-        : (string(raw.title) ?? individualName ?? string(raw.label) ?? string(product.name) ?? "Discord cosmetic")
+        ? (string(raw.title) ?? string(raw.label) ?? individualName ?? specificName)
+        : (string(raw.title) ?? string(raw.label) ?? individualName
+            ?? (isBundle ? undefined : string(product.name)) ?? "Discord cosmetic")
     ).slice(0, 120);
     // A native nameplate needs the asset and palette, not just a picture.
     if (kind === "nameplate" && (!asset || !palette)) return;
@@ -114,15 +128,15 @@ function normalize(product: Record<string, any>, raw: Record<string, any>, categ
     const itemStatic = safeImage(itemAssets.static_image_url) ?? safeImage(itemAssets.staticImageUrl);
     const itemAnimated = safeImage(itemAssets.animated_image_url) ?? safeImage(itemAssets.animatedImageUrl);
     const itemVideo = safeImage(itemAssets.video_url) ?? safeImage(itemAssets.videoUrl);
+    const productForPreview = matchingMember ?? (isBundle ? undefined : product);
     const previewUrl = kind === "nameplate"
-        ? itemStatic ?? itemAnimated ?? previewFor(raw, matchingMember ?? product) ?? previewFor(raw, product)
-        : previewFor(raw, matchingMember ?? product) ?? previewFor(raw, product);
-    const previewAssets = record((matchingMember ?? product).preview_assets)
-        ?? record((matchingMember ?? product).previewAssets)
-        ?? record(product.preview_assets) ?? record(product.previewAssets) ?? {};
-    const animatedPreviewUrl = safeImage(previewAssets.fg_animated)
-        ?? safeImage(previewAssets.fgAnimated)
-        ?? safeImage(itemAssets.animated_image_url);
+        ? itemStatic ?? itemAnimated ?? previewFor(raw, productForPreview)
+        : previewFor(raw, productForPreview);
+    const previewAssets = record(productForPreview?.preview_assets)
+        ?? record(productForPreview?.previewAssets) ?? {};
+    const animatedPreviewUrl = itemAnimated
+        ?? safeImage(previewAssets.fg_animated)
+        ?? safeImage(previewAssets.fgAnimated);
     let effect: Record<string, unknown> | undefined;
     if (kind === "effect") {
         effect = {
