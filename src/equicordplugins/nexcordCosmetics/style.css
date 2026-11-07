@@ -886,3 +886,13 @@
     overscroll-behavior:contain;
     align-content:start;
 }
+
+.larpcord-badge-bulk-actions {
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    align-items:center;
+}
+.larpcord-badge-bulk-actions button {
+    margin:0!important;
+}
