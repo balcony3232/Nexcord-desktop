@@ -32,7 +32,7 @@ export type ShopItem = {
 };
 
 // Refresh cached entries when their individual/bundle SKU schema changes.
-const CACHE_KEY = "nexcord.collectibles-catalog.v5";
+const CACHE_KEY = "nexcord.collectibles-catalog.v6";
 const SELECT_KEY = "nexcord.collectibles-selected.v1";
 const ONE_DAY = 24 * 60 * 60 * 1000;
 const MAX_PRODUCTS = 5000;
@@ -101,8 +101,9 @@ function normalize(product: Record<string, any>, raw: Record<string, any>, categ
         || (Array.isArray(member.items) && member.items.some((part: Record<string, any>) =>
             sku(part.sku_id) === id || sku(part.skuId) === id)));
     const isBundle = product.type === 1000;
-    // A bundle containing a cosmetic isn't the cosmetic itself. Require an
-    // identifiable child item and never use its parent thumbnail or SKU.
+    // Never offer an enclosing bundle SKU as though it were a frame SKU.
+    // Product cards can have type=1000 and multiple cosmetic children.
+    if (kind === "frame" && isBundle && id === (sku(product.sku_id) ?? sku(product.skuId))) return;
     if (isBundle && !matchingMember && !string(raw.title) && !string(raw.label)) return;
     const asset = string(raw.asset);
     const palette = string(raw.palette);
@@ -118,7 +119,8 @@ function normalize(product: Record<string, any>, raw: Record<string, any>, categ
         : baseName;
     const name = (kind === "nameplate"
         ? (string(raw.title) ?? individualName ?? string(raw.label) ?? specificName)
-        : (string(raw.title) ?? individualName ?? string(raw.label)
+        : (string(raw.title) ?? string(raw.label) ?? string(raw.name)
+            ?? (kind === "frame" && isBundle ? undefined : individualName)
             ?? (isBundle ? undefined : string(product.name)) ?? "Discord cosmetic")
     ).slice(0, 120);
     // A native nameplate needs the asset and palette, not just a picture.
@@ -129,12 +131,23 @@ function normalize(product: Record<string, any>, raw: Record<string, any>, categ
     const itemAnimated = safeImage(itemAssets.animated_image_url) ?? safeImage(itemAssets.animatedImageUrl);
     const itemVideo = safeImage(itemAssets.video_url) ?? safeImage(itemAssets.videoUrl);
     const productForPreview = matchingMember ?? (isBundle ? undefined : product);
-    const previewUrl = kind === "nameplate"
-        ? itemStatic ?? itemAnimated ?? previewFor(raw, productForPreview)
-        : previewFor(raw, productForPreview);
+    // Frame previews MUST belong to the individual frame item. Product
+    // previews frequently show an entire themed bundle (several cosmetics).
+    // Never use a bundle/member poster as a profile frame image.
+    const frameStatic = safeImage(raw.staticFrameSrc) ?? safeImage(raw.static_frame_src)
+        ?? safeImage(raw.thumbnailPreviewSrc) ?? safeImage(raw.thumbnail_preview_src)
+        ?? itemStatic;
+    const frameAnimated = itemAnimated ?? safeImage(raw.reducedMotionSrc)
+        ?? safeImage(raw.reduced_motion_src);
+    const previewUrl = kind === "frame"
+        ? frameStatic ?? frameAnimated
+        : kind === "nameplate"
+            ? itemStatic ?? itemAnimated ?? previewFor(raw, productForPreview)
+            : previewFor(raw, productForPreview);
+    if (kind === "frame" && !previewUrl) return;
     const previewAssets = record(productForPreview?.preview_assets)
         ?? record(productForPreview?.previewAssets) ?? {};
-    const animatedPreviewUrl = itemAnimated
+    const animatedPreviewUrl = kind === "frame" ? frameAnimated : itemAnimated
         ?? safeImage(previewAssets.fg_animated)
         ?? safeImage(previewAssets.fgAnimated);
     let effect: Record<string, unknown> | undefined;
@@ -371,8 +384,11 @@ export function getShopSelection(userId: string | undefined, kind: ShopKind): Sh
     if (!selected) return;
     // Saved local previews from the old catalogue may still carry the bundle
     // showcase art. Prefer the refreshed individual SKU metadata in memory.
-    return cached?.items.find(item => item.kind === kind && item.skuId === selected.skuId)
-        ?? selected;
+    const refreshed = cached?.items.find(item => item.kind === kind && item.skuId === selected.skuId);
+    // Old saved frame selections may contain a bundle poster; show frames
+    // only if validated by the refreshed per-frame catalogue.
+    if (kind === "frame") return refreshed;
+    return refreshed ?? selected;
 }
 export async function applyShopItem(userId: string, kind: ShopKind, item?: ShopItem) {
     if (!/^\d{15,22}$/.test(userId)) throw new Error("Invalid user ID");
