@@ -35,6 +35,23 @@ function renameNavigation() {
         link.dataset.nexcordWelcomeLink = "true";
     }
 }
+// The old Quests heading in Discord's top titlebar is outside the DM
+// navigation rail. Only rename it while our Welcome page owns the Quests
+// route; leave other Quests links and pages alone.
+function renameTopBar() {
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    let node: Node | null;
+    while ((node = walker.nextNode())) {
+        if (node.textContent?.trim() !== "Quests" || !node.parentElement) continue;
+        const el = node.parentElement;
+        if (el.closest("[data-nexcord-welcome-host]")) continue;
+        const rect = el.getBoundingClientRect();
+        if (rect.top < 0 || rect.top > 35 || rect.left < 300 || rect.width > 220 || rect.height > 32) continue;
+        const textNode = node as Text;
+        if (!textChanges.has(textNode)) textChanges.set(textNode, textNode.textContent || "");
+        textNode.textContent = "Welcome";
+    }
+}
 /**
  * Locate the live Quests page, not arbitrary CSS classes. Discord has changed
  * its centre-page containers repeatedly; matching only content_ / main left
@@ -85,6 +102,7 @@ function scan() {
     const target = findContent();
     if (window.location.pathname !== QUEST_ROUTE && !target) { unmount(); return; }
     if (!target) { unmount(); return; }
+    if (window.location.pathname === QUEST_ROUTE) renameTopBar();
     if (mounted?.parent === target && mounted.node.isConnected) return;
     unmount();
     const node = document.createElement("div");
