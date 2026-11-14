@@ -11,14 +11,11 @@ import { Logger } from "@utils/Logger";
 import { createRoot, React, ReactDOM, showToast, UserStore } from "@webpack/common";
 import type { Root } from "react-dom/client";
 
-import { applyAsset, getAppearance, importAsset, listAssets, loadCosmetics, subscribe } from "./storage";
-import { DEFAULT_PROFILE_STYLE, getLocalProfileStyle, loadProfileStyles, setLocalProfileStyle, subscribeProfileStyles } from "./LocalProfileStyle";
-import type { LocalBadge } from "./LocalProfileStyle";
+import { applyAsset, getAppearance, importAsset, listAssets, loadCosmetics, subscribe, type CosmeticKind } from "./storage";
+import { DEFAULT_PROFILE_STYLE, getLocalProfileStyle, loadProfileStyles, setLocalProfileStyle, subscribeProfileStyles, type LocalBadge } from "./LocalProfileStyle";
 import { ALL_BADGES_BY_GROUP, BADGE_IDS, badgeById } from "./BadgeCatalog";
-import type { CosmeticKind } from "./storage";
-import type { ShopKind } from "./ShopCatalog";
 import { ShopGallery } from "./ShopGallery";
-import { applyShopItem } from "./ShopCatalog";
+import { applyShopItem, type ShopKind } from "./ShopCatalog";
 import { scanNativeNameplate, stopNativeNameplate } from "./NativeNameplate";
 import { scanNativeEffectTile, stopNativeEffectTile } from "./NativeEffectTile";
 import { scanNativeFrameTile, stopNativeFrameTile } from "./NativeFrameTile";
