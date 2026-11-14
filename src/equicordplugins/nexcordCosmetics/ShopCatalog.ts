@@ -28,11 +28,13 @@ export type ShopItem = {
     nameplateAnimatedUrl?: string;
     nameplateVideoUrl?: string;
     effect?: Record<string, unknown>;
+    /** Real frame layers from an individual type=3 item, never a bundle poster. */
+    frameLayers?: Array<{ id: string; type: number; order: number; anchor: number; responsive?: boolean }>;
     category?: string;
 };
 
 // Refresh cached entries when their individual/bundle SKU schema changes.
-const CACHE_KEY = "nexcord.collectibles-catalog.v6";
+const CACHE_KEY = "nexcord.collectibles-catalog.v7";
 const SELECT_KEY = "nexcord.collectibles-selected.v1";
 const ONE_DAY = 24 * 60 * 60 * 1000;
 const MAX_PRODUCTS = 5000;
@@ -134,8 +136,7 @@ function normalize(product: Record<string, any>, raw: Record<string, any>, categ
     // Frame previews MUST belong to the individual frame item. Product
     // previews frequently show an entire themed bundle (several cosmetics).
     // Never use a bundle/member poster as a profile frame image.
-    const frameStatic = safeImage(raw.staticFrameSrc) ?? safeImage(raw.static_frame_src)
-        ?? itemStatic;
+    const frameStatic = itemStatic;
     const frameAnimated = itemAnimated ?? safeImage(raw.reducedMotionSrc)
         ?? safeImage(raw.reduced_motion_src);
     const previewUrl = kind === "frame"
@@ -143,7 +144,19 @@ function normalize(product: Record<string, any>, raw: Record<string, any>, categ
         : kind === "nameplate"
             ? itemStatic ?? itemAnimated ?? previewFor(raw, productForPreview)
             : previewFor(raw, productForPreview);
-    if (kind === "frame" && !previewUrl) return;
+    // Frames use layers, unlike profile effects. A thumbnail is optional.
+    const frameLayers = kind === "frame" && Array.isArray(raw.layers)
+        ? raw.layers.map(record).filter((layer): layer is Record<string, any> => !!layer)
+            .filter(layer => !!sku(layer.id)).slice(0, 32)
+            .map(layer => ({
+                id: sku(layer.id)!,
+                type: typeof layer.type === "number" ? layer.type : 0,
+                order: typeof layer.order === "number" ? layer.order : 0,
+                anchor: typeof layer.anchor === "number" ? layer.anchor : 0,
+                responsive: layer.responsive === true
+            }))
+        : [];
+    if (kind === "frame" && !frameLayers.length) return;
     const previewAssets = record(productForPreview?.preview_assets)
         ?? record(productForPreview?.previewAssets) ?? {};
     const animatedPreviewUrl = kind === "frame" ? frameAnimated : itemAnimated
@@ -177,7 +190,7 @@ function normalize(product: Record<string, any>, raw: Record<string, any>, categ
         nameplateStaticUrl: kind === "nameplate" ? itemStatic : undefined,
         nameplateAnimatedUrl: kind === "nameplate" ? itemAnimated : undefined,
         nameplateVideoUrl: kind === "nameplate" ? itemVideo : undefined,
-        effect, category
+        effect, frameLayers: kind === "frame" ? frameLayers : undefined, category
     };
 }
 
@@ -314,7 +327,10 @@ function validItem(value: unknown): value is ShopItem {
         && (!v.nameplateStaticUrl || !!safeImage(v.nameplateStaticUrl))
         && (!v.nameplateAnimatedUrl || !!safeImage(v.nameplateAnimatedUrl))
         && (!v.nameplateVideoUrl || !!safeImage(v.nameplateVideoUrl))
-        && (!v.asset || typeof v.asset === "string" && v.asset.length < 501);
+        && (!v.asset || typeof v.asset === "string" && v.asset.length < 501)
+        && (v.kind !== "frame" || Array.isArray(v.frameLayers)
+            && v.frameLayers.length > 0 && v.frameLayers.length <= 32
+            && v.frameLayers.every((layer: any) => !!sku(layer?.id)));
 }
 
 export async function loadShopCatalog(force = false): Promise<ShopItem[]> {
