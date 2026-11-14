@@ -167,6 +167,12 @@ function placeBadgeLayer(entry: Mounted) {
             && rect.left >= cardRect.left && rect.right <= cardRect.right + 5
             && rect.top > cardRect.top + 50 && rect.top < cardRect.top + 390;
     });
+    // Never invent a fixed "near the footer" badge position when Discord
+    // has no recognisable header yet (e.g. during popout transitions).
+    if (!headingRect && !badgeCandidates.length) {
+        entry.badge.node.style.display = "none";
+        return;
+    }
     const badgeRect = badgeCandidates.sort((a, b) => {
         const x = a.getBoundingClientRect(), y = b.getBoundingClientRect();
         // Prefer the compact badge row near the actual display name.
@@ -184,7 +190,7 @@ function placeBadgeLayer(entry: Mounted) {
         : 28;
     const top = row
         ? rightOfRow ? row.top - cardRect.top : row.bottom - cardRect.top + 5
-        : 215;
+        : 80;
     const width = rightOfRow ? Math.min(200, remaining - 5) : Math.min(cardRect.width - left - 12, 290);
     Object.assign(entry.badge.node.style, {
         display: "block",
