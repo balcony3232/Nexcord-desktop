@@ -5,8 +5,7 @@
 import type { RenderModalProps } from "@vencord/discord-types";
 import { IconUtils, Modal, React, showToast, UserProfileStore, UserStore } from "@webpack/common";
 
-import { applyAsset, getAppearance, getSelectedAsset, importAsset, listAssets, loadCosmetics, subscribe } from "./storage";
-import type { CosmeticKind } from "./storage";
+import { applyAsset, getAppearance, getSelectedAsset, importAsset, listAssets, loadCosmetics, subscribe, type CosmeticKind } from "./storage";
 
 export function LocalCosmeticsModal({
     userId,
