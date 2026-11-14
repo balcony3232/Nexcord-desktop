@@ -102,7 +102,10 @@ function scan() {
     const target = findContent();
     if (window.location.pathname !== QUEST_ROUTE && !target) { unmount(); return; }
     if (!target) { unmount(); return; }
-    if (window.location.pathname === QUEST_ROUTE) renameTopBar();
+    // The Welcome overlay can remain mounted while Discord internally
+    // changes its route. Rename the visible title whenever we own the page,
+    // not only when the URL still equals /quest-home.
+    renameTopBar();
     if (mounted?.parent === target && mounted.node.isConnected) return;
     unmount();
     const node = document.createElement("div");
