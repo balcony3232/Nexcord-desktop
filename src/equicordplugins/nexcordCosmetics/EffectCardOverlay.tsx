@@ -11,8 +11,7 @@ import { createRoot, React } from "@webpack/common";
 import type { Root } from "react-dom/client";
 
 import { getShopSelection, subscribeShop } from "./ShopCatalog";
-import { getEffectDefinition } from "./EffectAssets";
-import type { EffectDefinition, EffectLayer } from "./EffectAssets";
+import { getEffectDefinition, type EffectDefinition, type EffectLayer } from "./EffectAssets";
 
 const logger = new Logger("NexcordEffectOverlay");
 type Mount = { card: HTMLElement; host: HTMLElement; root: Root; position: string; };
