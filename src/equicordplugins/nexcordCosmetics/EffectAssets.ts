@@ -8,9 +8,8 @@
 import { RestAPI } from "@webpack/common";
 import { findStore } from "@webpack";
 
-import { cachedShopItems } from "./ShopCatalog";
+import { cachedShopItems, type ShopItem } from "./ShopCatalog";
 import archivedEffectMetadata from "./effectArchive.json";
-import type { ShopItem } from "./ShopCatalog";
 
 export interface EffectLayer {
     src: string;
