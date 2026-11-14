@@ -938,3 +938,72 @@
     background:rgba(24,22,30,.45)!important;
     border-radius:5px;
 }
+
+/* v0.1.13: The dialog's React portal has z-index:100000. The native close
+   button was z-index:100 and got painted UNDER the portal, so it vanished.
+   Keep the independent click handler, but render it above the portal. */
+.larpcord-native-cosmetic-dialog > button.larpcord-dialog-close {
+    z-index:2147483647!important;
+    position:absolute!important;
+    top:8px!important;
+    right:10px!important;
+    width:28px!important;
+    height:28px!important;
+    border-radius:7px!important;
+    background:var(--background-modifier-hover,#333239)!important;
+    color:var(--text-normal,#fff)!important;
+    opacity:1!important;
+    visibility:visible!important;
+    display:grid!important;
+    place-items:center!important;
+    pointer-events:auto!important;
+    cursor:pointer!important;
+}
+.larpcord-native-cosmetic-dialog .nexcord-native-popover-title {
+    padding-right:38px;
+}
+
+/* Local profile badges should look like Discord badges, not a separate
+   black rectangular toolbar beside the display name. Keep natural content
+   width, transparent background, and horizontal scrolling beyond available
+   room so users can select any number of local catalogue icons. */
+.larpcord-layer-badges {
+    background:transparent!important;
+    box-shadow:none!important;
+    border:0!important;
+    pointer-events:none!important;
+}
+.larpcord-layer-badges .larpcord-native-badge-row {
+    display:inline-flex!important;
+    width:max-content!important;
+    max-width:100%!important;
+    min-height:23px;
+    max-height:28px;
+    gap:3px!important;
+    padding:0!important;
+    margin:0!important;
+    border:0!important;
+    border-radius:0!important;
+    box-shadow:none!important;
+    background:transparent!important;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+    scrollbar-width:thin;
+    pointer-events:auto!important;
+}
+.larpcord-layer-badges .larpcord-native-badge {
+    width:21px!important;
+    height:21px!important;
+    flex:0 0 21px!important;
+    padding:0!important;
+    margin:0!important;
+    border:0!important;
+    background:transparent!important;
+    box-shadow:none!important;
+}
+.larpcord-layer-badges .larpcord-native-badge > span {
+    font-size:17px!important;
+}
+.larpcord-layer-badges .larpcord-native-badge-row::-webkit-scrollbar {
+    height:2px;
+}
