@@ -135,7 +135,6 @@ function normalize(product: Record<string, any>, raw: Record<string, any>, categ
     // previews frequently show an entire themed bundle (several cosmetics).
     // Never use a bundle/member poster as a profile frame image.
     const frameStatic = safeImage(raw.staticFrameSrc) ?? safeImage(raw.static_frame_src)
-        ?? safeImage(raw.thumbnailPreviewSrc) ?? safeImage(raw.thumbnail_preview_src)
         ?? itemStatic;
     const frameAnimated = itemAnimated ?? safeImage(raw.reducedMotionSrc)
         ?? safeImage(raw.reduced_motion_src);
