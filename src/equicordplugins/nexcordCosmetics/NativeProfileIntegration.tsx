@@ -351,6 +351,24 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
         const dialog = document.createElement("dialog");
         dialog.className = "larpcord-native-cosmetic-dialog";
         dialog.setAttribute("aria-label", "Larpcord cosmetic picker");
+        // Keep Close OUTSIDE the React portal. Discord's editor overlay can
+        // swallow React's delegated click event at this edge of the dialog.
+        // A native button in the dialog top layer receives the click directly.
+        const closeButton = document.createElement("button");
+        closeButton.type = "button";
+        closeButton.className = "larpcord-picker-close larpcord-dialog-close";
+        closeButton.textContent = "×";
+        closeButton.setAttribute("aria-label", "Close cosmetic picker");
+        closeButton.title = "Close";
+        const onCloseClick = (event: MouseEvent) => {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            setOpen(false);
+        };
+        const onClosePointer = (event: PointerEvent) => event.stopPropagation();
+        closeButton.addEventListener("click", onCloseClick);
+        closeButton.addEventListener("pointerdown", onClosePointer);
+        dialog.appendChild(closeButton);
         const onCancel = (event: Event) => {
             event.preventDefault();
             setOpen(false);
@@ -368,6 +386,8 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
         setDialogHost(dialog);
         return () => {
             dialog.removeEventListener("cancel", onCancel);
+            closeButton.removeEventListener("click", onCloseClick);
+            closeButton.removeEventListener("pointerdown", onClosePointer);
             if (dialog.open) dialog.close();
             dialog.remove();
         };
@@ -522,9 +542,7 @@ function NativeTrigger({ kind, surface }: { kind: NativeKind; surface: Surface; 
                             browseKind === "effect" ? "Profile Effects" :
                             browseKind === "frame" ? "Profile Frames" :
                             browseKind === "badges" ? "Badge Catalogue" : "Local Profile Identity"}</strong>
-                        <button type="button" className="larpcord-picker-close"
-                            aria-label="Close cosmetic picker" title="Close"
-                            onClick={() => setOpen(false)}>×</button>
+                        {/* A native close control is mounted above this portal in the dialog top layer. */}
                     </div>
                     <div className="larpcord-cosmetics-kind-tabs" role="tablist" aria-label="Browse local cosmetics">
                         {([
