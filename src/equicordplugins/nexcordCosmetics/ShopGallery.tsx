@@ -117,10 +117,8 @@ export function ShopGallery({
 
     async function select(item?: ShopItem) {
         if (busy) return;
-        if (item && activeKind === "frame" && !item.frameLayers?.length) {
-            setError("No valid frame layers were found for this item. Refresh the catalogue.");
-            return;
-        }
+        // Missing layer data affects how closely we can reproduce the frame,
+        // not whether Discord lists a real type=3 individual frame SKU.
         setBusy(true);
         setError("");
         setFeedback("");
