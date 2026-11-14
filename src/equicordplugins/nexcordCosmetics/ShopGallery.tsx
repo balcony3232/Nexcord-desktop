@@ -66,6 +66,7 @@ export function ShopGallery({
     const [visibleLimit, setVisibleLimit] = React.useState(50);
     const scrollBox = React.useRef<HTMLDivElement>(null);
     const [activeKind, setActiveKind] = React.useState<ShopKind>(kind);
+    React.useEffect(() => { setActiveKind(kind); setSearch(""); setVisibleLimit(50); }, [kind]);
     const [busy, setBusy] = React.useState(false);
     const [loaded, setLoaded] = React.useState(false);
     const [error, setError] = React.useState("");
@@ -116,8 +117,8 @@ export function ShopGallery({
 
     async function select(item?: ShopItem) {
         if (busy) return;
-        if (item && activeKind === "frame" && !item.previewUrl && !item.animatedPreviewUrl) {
-            setError("This individual frame has no usable preview artwork yet. Choose another frame.");
+        if (item && activeKind === "frame" && !item.frameLayers?.length) {
+            setError("No valid frame layers were found for this item. Refresh the catalogue.");
             return;
         }
         setBusy(true);
@@ -163,7 +164,7 @@ export function ShopGallery({
             <p className="nexcord-shop-gallery-info">
                 {activeKind === "nameplate"
                     ? "Individual nameplates, with local rendering in the editor, profile popout and member list. Nothing is purchased or unlocked."
-                    : "Select a cosmetic to preview locally. Frames show their preview artwork; profile effects render where animation assets exist. Nothing is purchased or unlocked."}
+                    : activeKind === "frame" ? "Only individual Profile Frames are listed using their actual layer IDs; a matching native frame renderer is not yet available." : "Select a cosmetic to preview locally. Profile effects render where animation assets exist. Nothing is purchased or unlocked."}
             </p>
             <input
                 className="nexcord-shop-gallery-search"
@@ -202,7 +203,7 @@ export function ShopGallery({
                             ? <NameplateArtwork item={item} userId={userId} compact />
                             : (item.previewUrl ?? item.animatedPreviewUrl)
                                 ? <img loading="lazy" src={item.previewUrl ?? item.animatedPreviewUrl} alt="" />
-                            : <span className="nexcord-shop-none">✦</span>}
+                            : <span className="nexcord-frame-item-placeholder" aria-label={activeKind === "frame" ? "Frame layers available" : "No thumbnail"}>▣</span>}
                         <small>{item.name}</small>
                         {selected?.skuId === item.skuId && <span className="nexcord-shop-card-check" aria-hidden="true">✓</span>}
                     </button>
@@ -225,14 +226,14 @@ export function ShopGallery({
                         ? <NameplateArtwork item={selected} userId={userId} compact />
                         : (selected.previewUrl ?? selected.animatedPreviewUrl)
                             ? <img src={selected.previewUrl ?? selected.animatedPreviewUrl} alt="" />
-                        : <span className="nexcord-shop-preview-placeholder">✦</span>}
+                        : <span className="nexcord-shop-preview-placeholder">{activeKind === "frame" ? "▣" : "✦"}</span>}
                     <div>
                         <strong>{selected.name}</strong>
                         <span>Selected · Saved locally</span>
                         <small>{activeKind === "nameplate"
                             ? "Locally applied to your editor, self popout and member row."
                              : activeKind === "frame"
-                                ? "An edge-only profile frame appears in your profile preview. Real collectibles remain unchanged."
+                                ? "A simple local border previews selection; native frame layers are not yet rendered. No real collectible is equipped."
                                 : activeKind === "decoration"
                                 ? "Decoration thumbnail appears locally in the native profile editor."
                                 : "An effect overlay is shown locally when animation assets are available."}</small>
@@ -240,7 +241,7 @@ export function ShopGallery({
                 </div>
             )}
             <p className="nexcord-shop-gallery-info">Showing individual cosmetics from Discord's current Shop feed rather than bundle posters. Retired or unavailable cosmetics may not be returned. Images load on demand.</p>
-            {activeKind === "frame" && <p className="nexcord-shop-gallery-info">Shop artwork approximates a profile border. Exact animated frame rendering needs additional assets and is not yet supported. No real collectible is equipped.</p>}
+            {activeKind === "frame" && <p className="nexcord-shop-gallery-info">Individual frames without a separately available thumbnail show a neutral symbol, never a bundle poster. Native frame-layer rendering is not supported yet.</p>}
         </div>
     );
 }
