@@ -8,8 +8,7 @@
 import { Logger } from "@utils/Logger";
 import { UserProfileStore, UserStore } from "@webpack/common";
 
-import { getShopSelection, subscribeShop } from "./ShopCatalog";
-import type { ShopItem } from "./ShopCatalog";
+import { getShopSelection, subscribeShop, type ShopItem } from "./ShopCatalog";
 
 const logger = new Logger("NexcordShopDisplay");
 type NativeProfile = Record<string, any>;

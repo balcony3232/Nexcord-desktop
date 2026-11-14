@@ -126,6 +126,11 @@ for (const family of experimental) {
  * is available; those are preview variants, not official entitlement icons.
  */
 const ARCHIVE = "https://cdn.jsdelivr.net/gh/EliteZilla/Discord-Badges@294dee8c8ecc4f885806915d005ed199ff7baaa7/assets/";
+const JACKMA_BADGES = "https://cdn.jsdelivr.net/gh/Fmasterpro27/Discord-badges@ff55dded12ed08a0c0673827306ffc43d7207105/assets/profile_badges/";
+const VERIFIED_EXTERNAL_ICONS: Record<string, string> = {
+    "verified-dev": JACKMA_BADGES + "discordbotdev.svg",
+    "lootbox": JACKMA_BADGES + "discordlootbox.svg"
+};
 function archivedIcon(id: string): string | undefined {
     if (id === "nitro") return "profile/discord-nitro.svg";
     const nitro = /^nitro-(bronze|silver|gold|platinum|diamond|emerald|ruby|opal)$/.exec(id);
@@ -162,6 +167,7 @@ function archivedIcon(id: string): string | undefined {
 for (const badgeItem of BADGE_CATALOG) {
     const asset = archivedIcon(badgeItem.id);
     if (asset) badgeItem.image = ARCHIVE + asset;
+    else if (VERIFIED_EXTERNAL_ICONS[badgeItem.id]) badgeItem.image = VERIFIED_EXTERNAL_ICONS[badgeItem.id];
 }
 
 // Preserve historical saved badge IDs, but remove duplicate browse entries.

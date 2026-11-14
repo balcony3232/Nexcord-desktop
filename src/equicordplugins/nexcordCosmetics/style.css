@@ -896,3 +896,45 @@
 .larpcord-badge-bulk-actions button {
     margin:0!important;
 }
+
+/* Larpcord picker hotfix: the native close control is a direct dialog child,
+ * above the React portal, and cannot be covered by Discord modal layers. */
+.larpcord-native-cosmetic-dialog > .larpcord-dialog-close {
+    position:absolute!important;
+    top:10px!important;
+    right:12px!important;
+    left:auto!important;
+    z-index:100!important;
+    display:grid!important;
+    opacity:1!important;
+    visibility:visible!important;
+    pointer-events:auto!important;
+    touch-action:manipulation;
+}
+
+/* Badge previews live on our own stable card layer, positioned beside the
+ * earned Discord badge row. Unbounded selections scroll horizontally. */
+.larpcord-layer-badges {
+    position:absolute!important;
+    display:block!important;
+    margin:0!important;
+    max-width:none!important;
+    z-index:18!important;
+    pointer-events:auto!important;
+}
+.larpcord-layer-badges .larpcord-native-badge-row {
+    display:flex!important;
+    flex-direction:row;
+    flex-wrap:nowrap!important;
+    width:100%;
+    min-width:0;
+    max-width:100%!important;
+    max-height:40px;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+    padding:2px 3px!important;
+    scrollbar-width:thin;
+    white-space:nowrap;
+    background:rgba(24,22,30,.45)!important;
+    border-radius:5px;
+}

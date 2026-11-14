@@ -52,7 +52,8 @@ function exactTextNodes(card: HTMLElement, expected: string): Text[] {
 function findNameNode(card: HTMLElement, userId: string): Text | undefined {
     const user = UserStore.getUser(userId) ?? UserStore.getCurrentUser();
     if (!user) return;
-    const names = [...new Set([user.globalName, user.username].filter((x): x is string => !!x))];
+    const localName = getLocalProfileStyle(userId).localDisplayName;
+    const names = [...new Set([user.globalName, user.username, localName].filter((x): x is string => !!x))];
     const texts = names.flatMap(name => exactTextNodes(card, name));
     texts.sort((a, b) => {
         const fontA = parseFloat(getComputedStyle(a.parentElement!).fontSize) || 0;
@@ -149,19 +150,54 @@ function FrameEdge({userId}: {userId:string}) {
     );
 }
 
-function findBadgeAnchor(card: HTMLElement, userId: string): HTMLElement | undefined {
-    const heading = findNameNode(card, userId)?.parentElement;
-    if (!heading) return;
-    const head = heading.getBoundingClientRect();
-    for (const el of card.querySelectorAll<HTMLElement>(
+/** Position badges relative to our OWN card layer, not a Discord-managed
+ * React child. Discord frequently replaces its badge/name rows and would
+ * otherwise detach our badge root or hide it inside its overflow area. */
+function placeBadgeLayer(entry: Mounted) {
+    const cardRect = entry.card.getBoundingClientRect();
+    const heading = findNameNode(entry.card, entry.userId)?.parentElement;
+    const headingRect = heading?.getBoundingClientRect();
+    const badgeCandidates = [...entry.card.querySelectorAll<HTMLElement>(
         '[class*="profileBadges_"],[class*="badgeList_"],[class*="badgeContainer_"],[class*="badges_"]'
-    )) {
-        if (el.closest("[data-larpcord-local-layer]") || el.contains(heading)) continue;
-        const r = el.getBoundingClientRect();
-        if (r.width > 10 && r.width < 300 && r.height < 90 &&
-            r.top >= head.top - 18 && r.top < head.bottom + 105) return el;
+    )].filter(el => {
+        if (el.closest("[data-larpcord-local-layer]")) return false;
+        const rect = el.getBoundingClientRect();
+        return rect.width > 24 && rect.width < cardRect.width - 5
+            && rect.height >= 12 && rect.height < 65
+            && rect.left >= cardRect.left && rect.right <= cardRect.right + 5
+            && rect.top > cardRect.top + 50 && rect.top < cardRect.top + 390;
+    });
+    // Never invent a fixed "near the footer" badge position when Discord
+    // has no recognisable header yet (e.g. during popout transitions).
+    if (!headingRect && !badgeCandidates.length) {
+        entry.badge.node.style.display = "none";
+        return;
     }
-    return heading.parentElement ?? heading;
+    const badgeRect = badgeCandidates.sort((a, b) => {
+        const x = a.getBoundingClientRect(), y = b.getBoundingClientRect();
+        // Prefer the compact badge row near the actual display name.
+        return (Math.abs(x.top - (headingRect?.bottom ?? cardRect.top + 220)) + x.width / 10)
+            - (Math.abs(y.top - (headingRect?.bottom ?? cardRect.top + 220)) + y.width / 10);
+    })[0]?.getBoundingClientRect();
+
+    // Keep room for a horizontal scrolling badge strip. When the native row
+    // leaves no room, put it directly below that row instead.
+    const row = badgeRect ?? headingRect;
+    const remaining = row ? cardRect.right - row.right - 10 : 0;
+    const rightOfRow = remaining >= 95;
+    const left = row
+        ? rightOfRow ? row.right - cardRect.left + 7 : Math.max(12, row.left - cardRect.left)
+        : 28;
+    const top = row
+        ? rightOfRow ? row.top - cardRect.top : row.bottom - cardRect.top + 5
+        : 80;
+    const width = rightOfRow ? Math.min(200, remaining - 5) : Math.min(cardRect.width - left - 12, 290);
+    Object.assign(entry.badge.node.style, {
+        display: "block",
+        left: Math.max(8, left) + "px",
+        top: Math.max(65, top) + "px",
+        width: Math.max(90, width) + "px"
+    });
 }
 function findAvatar(card: HTMLElement): HTMLElement | undefined {
     const rect = card.getBoundingClientRect();
@@ -198,11 +234,13 @@ function makeLayer(card: HTMLElement, type: string): Layer {
 function update(entry:Mounted) {
     if (!entry.card.isConnected) return;
     applyLocalNames(entry);
+    placeBadgeLayer(entry);
     placeAvatarLayer(entry);
 }
 export function syncLocalIdentityPreview(surface:IdentitySurface,card:HTMLElement|undefined,userId:string) {
     const previous=mounts.get(surface);
     if (card && previous?.card === card && previous.userId === userId && previous.badge.node.isConnected) {
+        placeBadgeLayer(previous);
         placeAvatarLayer(previous);
         return;
     }
@@ -217,15 +255,14 @@ export function syncLocalIdentityPreview(surface:IdentitySurface,card:HTMLElemen
         decoration=makeLayer(card,"decoration");
         const entry:Mounted={card,userId,surface,badge,frame,decoration,originalPosition,originalTexts:[],stop:[]};
         mounts.set(surface,entry);
-        const anchor=findBadgeAnchor(card,userId);
-        if (anchor) anchor.append(badge.node);
-        else badge.node.style.display = "none";
+        // Badge root stays inside our card-owned layer, never inside a
+        // React-managed native badge row which Discord may replace.
         badge.root.render(<BadgeRow userId={userId}/>);
         frame.root.render(<FrameEdge userId={userId}/>);
         decoration.root.render(<AvatarLayer userId={userId}/>);
         update(entry);
         entry.stop.push(subscribeProfileStyles(()=>update(entry)));
-        const resizer=new ResizeObserver(()=>placeAvatarLayer(entry));
+        const resizer=new ResizeObserver(()=>{placeAvatarLayer(entry);placeBadgeLayer(entry);});
         resizer.observe(card);
         entry.stop.push(()=>resizer.disconnect());
     } catch (error) {
