@@ -4,8 +4,7 @@
  */
 import { React, showToast } from "@webpack/common";
 
-import { applyShopItem, cachedShopItems, getShopSelection, loadShopCatalog, loadShopSelections, subscribeShop } from "./ShopCatalog";
-import type { ShopItem, ShopKind } from "./ShopCatalog";
+import { applyShopItem, cachedShopItems, getShopSelection, loadShopCatalog, loadShopSelections, subscribeShop, type ShopItem, type ShopKind } from "./ShopCatalog";
 import { clearEffectLookupCache, inspectEffectDefinition } from "./EffectAssets";
 import { applyAsset } from "./storage";
 import { NameplateArtwork } from "./NameplateArtwork";
