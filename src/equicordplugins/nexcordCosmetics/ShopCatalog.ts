@@ -156,7 +156,8 @@ function normalize(product: Record<string, any>, raw: Record<string, any>, categ
                 responsive: layer.responsive === true
             }))
         : [];
-    if (kind === "frame" && !frameLayers.length) return;
+    // Some Shop responses omit layers until the individual product is opened.
+    // An item with type=3 and its OWN SKU remains an individual frame.
     const previewAssets = record(productForPreview?.preview_assets)
         ?? record(productForPreview?.previewAssets) ?? {};
     const animatedPreviewUrl = kind === "frame" ? frameAnimated : itemAnimated
@@ -328,8 +329,8 @@ function validItem(value: unknown): value is ShopItem {
         && (!v.nameplateAnimatedUrl || !!safeImage(v.nameplateAnimatedUrl))
         && (!v.nameplateVideoUrl || !!safeImage(v.nameplateVideoUrl))
         && (!v.asset || typeof v.asset === "string" && v.asset.length < 501)
-        && (v.kind !== "frame" || Array.isArray(v.frameLayers)
-            && v.frameLayers.length > 0 && v.frameLayers.length <= 32
+        && (!v.frameLayers || Array.isArray(v.frameLayers)
+            && v.frameLayers.length <= 32
             && v.frameLayers.every((layer: any) => !!sku(layer?.id)));
 }
 
