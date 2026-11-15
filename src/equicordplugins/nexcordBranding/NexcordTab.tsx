@@ -19,7 +19,7 @@ export default function NexcordTab() {
             </div>
             <h3>Welcome to Larpcord</h3>
             <p>Larpcord is an independent, community-built Discord client modification based on Equicord and Vencord. Choose Original, Accent, or Full Larpcord modes without changing Discord's familiar layout.</p>
-            <p>Customise your accent in Larpcord Settings → Appearance. Plugins and saved presets remain available from the Plugins tab.</p>
+            <p>Customise your accent in Larpcord Settings → Appearance. Use the Emojis & Stickers page to enable visual custom-emoji and sticker compatibility without Nitro. Plugins and saved presets remain available from the Plugins tab.</p>
             <h3>Early development build</h3>
             <p>Custom loading facts are supplied by LoadingQuotes. Local-only profile themes, cosmetic previews and native editor integration are experimental. Silent updating and rollback still require end-to-end testing.</p>
             <p><a href="https://github.com/balcony3232/Nexcord-desktop" target="_blank" rel="noreferrer">Larpcord source and releases</a></p>

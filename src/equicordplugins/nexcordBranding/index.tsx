@@ -5,12 +5,13 @@
 import "./appearance.css";
 
 import { definePluginSettings, SettingsStore } from "@api/Settings";
-import { PaintbrushIcon } from "@components/Icons";
+import { ImageIcon, PaintbrushIcon } from "@components/Icons";
 import SettingsPlugin from "@plugins/_core/settings";
 import { removeFromArray } from "@utils/misc";
 import definePlugin, { OptionType, StartAt } from "@utils/types";
 
 import { AccentTab } from "./AccentTab";
+import { EmotesTab } from "./EmotesTab";
 import { applyAccent, DEFAULT_ACCENT, normaliseHex, resetAccent, type AppearanceMode } from "./accent";
 import { NexcordLogo } from "./NexcordLogo";
 
@@ -81,6 +82,12 @@ export default definePlugin({
             Component: AccentTab,
             Icon: PaintbrushIcon
         }, {
+            key: "larpcord_emotes",
+            title: "Emojis & Stickers",
+            panelTitle: "Larpcord Emojis & Stickers",
+            Component: EmotesTab,
+            Icon: ImageIcon
+        }, {
             key: "nexcord_about",
             title: "About Larpcord",
             Component: require("./NexcordTab").default,
@@ -91,7 +98,7 @@ export default definePlugin({
         for (const key of appearanceKeys) SettingsStore.addChangeListener(key, accentChanged);
     },
     stop() {
-        removeFromArray(SettingsPlugin.customEntries, entry => entry.key === "larpcord_appearance" || entry.key === "nexcord_about");
+        removeFromArray(SettingsPlugin.customEntries, entry => entry.key === "larpcord_appearance" || entry.key === "larpcord_emotes" || entry.key === "nexcord_about");
         SettingsStore.removeChangeListener(accentKey, accentChanged);
         for (const key of appearanceKeys) SettingsStore.removeChangeListener(key, accentChanged);
         resetAccent();

@@ -142,3 +142,11 @@ GitHub Actions workflow: `.github/workflows/larpcord-desktop.yml` on `larpcord-d
 - Existing saved cosmetics, real Discord account entitlements, Profile Editor functionality, theme preferences and the independent Windows installation are unaffected by this local-only change.
 
 **Known limitation:** native animated Profile Frames are layered assets, not ordinary Shop thumbnails; faithfully rendering every layer is separate work. v0.1.11 improves item-specific static previews and hook stability but does not claim full native frame-equipping.
+
+## Upcoming — Larpcord emojis & stickers settings (unreleased)
+
+- New Larpcord Settings → Emojis & Stickers page exposes the existing upstream FakeNitro plugin as an opt-in compatibility feature.
+- Separate switches for sending custom/animated emojis and stickers, plus rendering compatible image links as native-looking expressions locally.
+- Correctly starts plugin dependencies when enabling and prompts for reload, since FakeNitro uses startup webpack patches.
+- Non-Nitro recipients may see URLs or attachments, and missing embed/attachment permissions still apply; no real Nitro subscription or paid entitlement is granted.
+- Manual Windows testing required: toggles, restart persistence, DMs, other servers, animations, no-embed channels and normal native emoji sends.
